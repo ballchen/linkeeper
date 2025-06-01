@@ -42,9 +42,11 @@ function App() {
   }, []);
 
   // Save layout preference to localStorage
-  const handleLayoutChange = (newLayout: LayoutMode) => {
+  const handleLayoutChange = (newLayout: LayoutMode, event: React.MouseEvent<HTMLButtonElement>) => {
     setLayoutMode(newLayout);
     localStorage.setItem('urlSaverLayout', newLayout);
+    // Remove focus to hide the layout options after selection
+    event.currentTarget.blur();
   };
 
   // Get layout configuration
@@ -246,22 +248,30 @@ function App() {
           </div>
         ) : (
           <>
-            <div className="layout-controls">
-              <div className="layout-buttons">
-                {(['compact', 'comfortable', 'spacious', 'list'] as LayoutMode[]).map((mode) => {
-                  const config = getLayoutConfig(mode);
-                  return (
-                    <button
-                      key={mode}
-                      className={`layout-btn ${layoutMode === mode ? 'active' : ''}`}
-                      onClick={() => handleLayoutChange(mode)}
-                      title={`${config.name} - ${config.description}`}
-                    >
-                      <span className="layout-icon">{config.icon}</span>
-                      <span className="layout-name">{config.name}</span>
-                    </button>
-                  );
-                })}
+            <div className="floating-layout-controls">
+              {/* Current layout indicator (always visible) */}
+              <div className="current-layout-indicator">
+                <span className="current-layout-icon">{currentLayoutConfig.icon}</span>
+              </div>
+              
+              {/* Layout options (visible on hover) */}
+              <div className="layout-options">
+                <div className="layout-buttons">
+                  {(['compact', 'comfortable', 'spacious', 'list'] as LayoutMode[]).map((mode) => {
+                    const config = getLayoutConfig(mode);
+                    return (
+                      <button
+                        key={mode}
+                        className={`layout-btn ${layoutMode === mode ? 'active' : ''}`}
+                        onClick={(event) => handleLayoutChange(mode, event)}
+                        title={`${config.name} - ${config.description}`}
+                      >
+                        <span className="layout-icon">{config.icon}</span>
+                        <span className="layout-name">{config.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
             
@@ -339,7 +349,7 @@ function App() {
                           className="url-link"
                         >
                           <span className="link-icon">🔗</span>
-                          Visit Link
+                          <span className="link-text">Visit Link</span>
                         </a>
                         
                         <button 
@@ -348,7 +358,7 @@ function App() {
                           title="Copy URL to clipboard"
                         >
                           <span className="share-icon">📋</span>
-                          Share
+                          <span className="share-text">Share</span>
                         </button>
                       </div>
                       

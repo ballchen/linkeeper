@@ -7,6 +7,7 @@ export class HttpUrlAnalysisService implements UrlAnalysisService {
       const hostname = urlObj.hostname.toLowerCase();
       const pathname = urlObj.pathname.toLowerCase();
 
+      console.log(urlObj);
       // Remove 'www.' and 'm.' prefixes for consistent matching
       const cleanHostname = hostname.replace(/^(www\.|m\.)/, '');
 
@@ -59,7 +60,7 @@ export class HttpUrlAnalysisService implements UrlAnalysisService {
   }
 
   private isThreadsUrl(hostname: string, pathname: string): boolean {
-    return hostname.includes('threads.com');
+    return hostname.includes('threads');
   }
 
   private isYouTubeUrl(hostname: string, pathname: string): boolean {

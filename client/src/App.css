@@ -162,7 +162,7 @@ body {
   position: fixed;
   top: var(--spacing-lg);
   right: var(--spacing-lg);
-  z-index: 1001;
+  z-index: 998;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -468,29 +468,98 @@ body {
   font-size: 0.95rem;
 }
 
-/* ===== LAYOUT CONTROLS ===== */
-.layout-controls {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-lg);
-  margin-bottom: var(--spacing-xl);
-  /* Safari compatibility */
-  -webkit-box-align: center;
-  -webkit-box-pack: start;
+/* ===== FLOATING LAYOUT CONTROLS ===== */
+.floating-layout-controls {
+  position: fixed;
+  top: var(--spacing-lg);
+  left: var(--spacing-lg);
+  z-index: 999;
+  transition: all var(--transition-normal);
 }
 
-.layout-label {
-  color: var(--text-primary);
-  font-weight: 600;
-  font-size: 1rem;
+.current-layout-indicator {
+  width: 48px;
+  height: 48px;
+  background: var(--bg-card);
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  backdrop-filter: blur(10px);
+  z-index: 1;
+  position: relative;
 }
 
-.layout-label::before {
-  content: '🎛️';
-  font-size: 1.2em;
+.current-layout-indicator:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-xl);
+}
+
+.current-layout-icon {
+  font-size: 1.4rem;
+  color: var(--primary-color);
+}
+
+.layout-options {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-30px) scaleX(0);
+  transform-origin: left center;
+  transition: all var(--transition-normal);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.floating-layout-controls:hover .layout-options,
+.floating-layout-controls:focus-within .layout-options {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0) scaleX(1);
+  pointer-events: all;
+}
+
+.floating-layout-controls:hover .current-layout-indicator,
+.floating-layout-controls:focus-within .current-layout-indicator {
+  opacity: 0;
+}
+
+/* Touch device support */
+@media (hover: none) and (pointer: coarse) {
+  .floating-layout-controls .current-layout-indicator {
+    position: relative;
+  }
+  
+  .floating-layout-controls .current-layout-indicator::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+  }
+  
+  .floating-layout-controls:active .layout-options {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0) scaleX(1);
+    pointer-events: all;
+  }
+  
+  .floating-layout-controls:active .current-layout-indicator {
+    opacity: 0;
+  }
+  
+  .floating-layout-controls:active .layout-name {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .layout-buttons {
@@ -498,12 +567,21 @@ body {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
   padding: var(--spacing-sm);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-xl);
   border: 1px solid var(--border-color);
   gap: var(--spacing-xs);
-  /* Safari compatibility */
-  -webkit-box-align: center;
-  -webkit-box-pack: center;
+  backdrop-filter: blur(20px);
+  min-width: 200px;
+  transition: all var(--transition-normal);
+}
+
+.layout-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.8rem;
+  text-align: center;
+  margin-top: var(--spacing-xs);
+  opacity: 0.8;
 }
 
 .layout-btn {
@@ -518,7 +596,7 @@ body {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-secondary);
-  transition: all var(--transition-normal);
+  transition: all var(--transition-fast);
   white-space: nowrap;
   position: relative;
   overflow: hidden;
@@ -581,6 +659,15 @@ body {
 .layout-name {
   font-size: 0.85rem;
   letter-spacing: 0.025em;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all var(--transition-normal) 0.1s;
+}
+
+.floating-layout-controls:hover .layout-name,
+.floating-layout-controls:focus-within .layout-name {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 /* ===== HEADER CONTROLS ===== */
@@ -1088,26 +1175,23 @@ body {
     font-size: 1rem;
   }
 
-  /* Layout controls responsive */
-  .controls-bar {
-    padding: var(--spacing-lg);
-    justify-content: center;
+  /* Floating layout controls responsive */
+  .floating-layout-controls {
+    top: var(--spacing-sm);
+    left: var(--spacing-sm);
   }
 
-  .layout-controls {
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: var(--spacing-md);
+  .current-layout-indicator {
+    width: 40px;
+    height: 40px;
   }
 
-  .layout-label {
-    font-size: 0.9rem;
-    margin-bottom: var(--spacing-sm);
+  .current-layout-icon {
+    font-size: 1.2rem;
   }
 
   .layout-buttons {
-    flex-wrap: wrap;
-    justify-content: center;
+    min-width: 160px;
     padding: var(--spacing-xs);
     gap: var(--spacing-xs);
   }
@@ -1117,13 +1201,17 @@ body {
   }
 
   .layout-btn {
-    padding: var(--spacing-md);
-    min-width: 48px;
+    padding: var(--spacing-sm);
+    min-width: 36px;
     justify-content: center;
   }
 
   .layout-icon {
-    font-size: 1.2em;
+    font-size: 1em;
+  }
+
+  .layout-label {
+    font-size: 0.75rem;
   }
   
   /* Mobile grid layouts - allow multiple columns for compact */
@@ -1175,12 +1263,21 @@ body {
   .url-card.layout-compact .url-actions {
     gap: var(--spacing-xs);
     margin-bottom: var(--spacing-sm);
+    flex-direction: row;
   }
 
   .url-card.layout-compact .url-link,
   .url-card.layout-compact .share-btn {
     padding: var(--spacing-sm);
     font-size: 0.8rem;
+    min-width: 44px;
+    justify-content: center;
+    flex: 1;
+  }
+
+  .url-card.layout-compact .link-text,
+  .url-card.layout-compact .share-text {
+    display: none;
   }
 
   .url-card.layout-compact .url-meta {
@@ -1245,7 +1342,20 @@ body {
   }
   
   .url-actions {
-    flex-direction: column;
+    flex-direction: row;
+    gap: var(--spacing-sm);
+  }
+
+  .url-link .link-text,
+  .share-btn .share-text {
+    display: none;
+  }
+
+  .url-link,
+  .share-btn {
+    min-width: 48px;
+    justify-content: center;
+    flex: 1;
   }
   
   .url-meta {
@@ -1288,26 +1398,39 @@ body {
     gap: var(--spacing-sm);
   }
 
-  .layout-controls {
-    flex-direction: column;
-    align-items: center;
-    gap: var(--spacing-md);
+  .floating-layout-controls {
+    top: var(--spacing-xs);
+    left: var(--spacing-xs);
   }
 
-  .layout-label {
-    font-size: 0.9rem;
-    text-align: center;
+  .current-layout-indicator {
+    width: 36px;
+    height: 36px;
+  }
+
+  .current-layout-icon {
+    font-size: 1rem;
   }
 
   .layout-buttons {
-    width: 100%;
-    max-width: 300px;
-    justify-content: center;
+    min-width: 140px;
+    padding: 4px;
+    gap: 2px;
   }
 
   .layout-btn {
-    flex: 1;
-    min-width: 60px;
+    padding: var(--spacing-xs);
+    min-width: 32px;
+    font-size: 0.8rem;
+  }
+
+  .layout-icon {
+    font-size: 0.9em;
+  }
+
+  .layout-label {
+    font-size: 0.7rem;
+    margin-top: 2px;
   }
 
   /* Ultra compact for very small screens */
@@ -1340,19 +1463,27 @@ body {
   }
 
   .url-card.layout-compact .share-btn {
-    display: none;
+    padding: var(--spacing-xs);
+    font-size: 0.7rem;
+    min-height: 28px;
+    min-width: 40px;
+    flex: 1;
+    justify-content: center;
   }
 
   .url-card.layout-compact .url-link {
     padding: var(--spacing-xs);
     font-size: 0.7rem;
     min-height: 28px;
-    width: 100%;
+    min-width: 40px;
+    flex: 1;
+    justify-content: center;
   }
 
   .url-card.layout-compact .url-actions {
-    gap: 0;
+    gap: var(--spacing-xs);
     margin-bottom: var(--spacing-xs);
+    flex-direction: row;
   }
 
   .url-card.layout-compact .url-meta {
@@ -1425,7 +1556,7 @@ body {
   }
 
   .url-card.layout-comfortable .url-actions {
-    flex-direction: column;
+    flex-direction: row;
     gap: var(--spacing-xs);
   }
 
@@ -1433,6 +1564,14 @@ body {
   .url-card.layout-comfortable .share-btn {
     padding: var(--spacing-sm);
     font-size: 0.8rem;
+    min-width: 44px;
+    justify-content: center;
+    flex: 1;
+  }
+
+  .url-card.layout-comfortable .link-text,
+  .url-card.layout-comfortable .share-text {
+    display: none;
   }
 
   .url-card.layout-comfortable .url-meta {
