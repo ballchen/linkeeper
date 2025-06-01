@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { AddUrlUseCase } from '../../../application/use-cases/AddUrlUseCase';
 import { GetUrlsUseCase } from '../../../application/use-cases/GetUrlsUseCase';
+import { AddUrlSchema } from '../schemas/addUrlSchema';
+import { ZodIssue } from 'zod';
 
 export class UrlController {
   constructor(
@@ -10,32 +12,17 @@ export class UrlController {
 
   async addUrl(req: Request, res: Response): Promise<void> {
     try {
-      const { url, tags } = req.body;
+      const parsed = AddUrlSchema.safeParse(req.body);
 
-      if (!url) {
-        res.status(400).json({ 
-          error: 'URL is required',
-          message: 'Please provide a valid URL in the request body'
-        });
-        return;
-      }
-
-      // Validate tags if provided
-      if (tags && !Array.isArray(tags)) {
+      if (!parsed.success) {
         res.status(400).json({
-          error: 'Invalid tags format',
-          message: 'Tags must be an array of strings'
+          error: 'Invalid request data',
+          message: parsed.error.errors.map((e: ZodIssue) => e.message).join(', ')
         });
         return;
       }
 
-      if (Array.isArray(tags) && !tags.every(tag => typeof tag === 'string')) {
-        res.status(400).json({
-          error: 'Invalid tags format',
-          message: 'Tags must be an array of strings'
-        });
-        return;
-      }
+      const { url, tags } = parsed.data;
 
       const result = await this.addUrlUseCase.execute({ url, tags });
 

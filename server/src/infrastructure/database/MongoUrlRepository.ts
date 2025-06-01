@@ -12,6 +12,19 @@ interface UrlDocument extends Document {
   source?: UrlSource;
   tags?: string[];
   createdAt: Date;
+  updatedAt: Date;
+}
+
+interface UrlRecord {
+  _id: mongoose.Types.ObjectId;
+  url: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  source?: UrlSource;
+  tags?: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const UrlSchema: Schema = new Schema({
@@ -19,14 +32,13 @@ const UrlSchema: Schema = new Schema({
   title: { type: String },
   description: { type: String },
   image: { type: String },
-  source: { 
-    type: String, 
+  source: {
+    type: String,
     enum: ['facebook', 'instagram', 'threads', 'youtube'],
-    required: false 
+    required: false
   },
-  tags: [{ type: String }],
-  createdAt: { type: Date, default: Date.now }
-});
+  tags: [{ type: String }]
+}, { timestamps: true });
 
 const UrlModel = mongoose.model<UrlDocument>('Url', UrlSchema);
 
@@ -38,8 +50,7 @@ export class MongoUrlRepository implements UrlRepository {
       description: url.metadata.description,
       image: url.metadata.image,
       source: url.metadata.source,
-      tags: url.metadata.tags || [],
-      createdAt: url.createdAt
+      tags: url.metadata.tags || []
     });
 
     const savedDoc = await urlDoc.save();
@@ -47,17 +58,17 @@ export class MongoUrlRepository implements UrlRepository {
   }
 
   async findByUrl(url: string): Promise<Url | null> {
-    const urlDoc = await UrlModel.findOne({ url });
+    const urlDoc = await UrlModel.findOne({ url }).lean<UrlRecord>();
     return urlDoc ? this.mapToEntity(urlDoc) : null;
   }
 
   async findAll(): Promise<Url[]> {
-    const urlDocs = await UrlModel.find().sort({ createdAt: -1 });
+    const urlDocs = await UrlModel.find().sort({ createdAt: -1 }).lean<UrlRecord[]>();
     return urlDocs.map(doc => this.mapToEntity(doc));
   }
 
   async findById(id: string): Promise<Url | null> {
-    const urlDoc = await UrlModel.findById(id);
+    const urlDoc = await UrlModel.findById(id).lean<UrlRecord | null>();
     return urlDoc ? this.mapToEntity(urlDoc) : null;
   }
 
@@ -65,7 +76,7 @@ export class MongoUrlRepository implements UrlRepository {
     await UrlModel.findByIdAndDelete(id);
   }
 
-  private mapToEntity(doc: UrlDocument): Url {
+  private mapToEntity(doc: UrlDocument | UrlRecord): Url {
     const metadata: UrlMetadata = {
       title: doc.title,
       description: doc.description,

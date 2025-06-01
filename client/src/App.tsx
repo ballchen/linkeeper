@@ -1,20 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import axios from 'axios'
 import './App.css'
+import { getUrls, saveUrl } from './db'
+import type { UrlData, UrlSource } from './db'
 
-type UrlSource = 'facebook' | 'instagram' | 'threads' | 'youtube';
 type LayoutMode = 'compact' | 'comfortable' | 'spacious' | 'list';
-
-interface UrlData {
-  _id: string;
-  url: string;
-  title?: string;
-  description?: string;
-  image?: string;
-  source?: UrlSource;
-  tags?: string[];
-  createdAt: string;
-}
 
 interface ToastMessage {
   id: string;
@@ -30,8 +19,8 @@ function App() {
   const [refreshSuccess, setRefreshSuccess] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('comfortable');
+  const [newUrl, setNewUrl] = useState('');
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
   // Load layout preference from localStorage
   useEffect(() => {
@@ -117,7 +106,52 @@ function App() {
     }
   };
 
-  // Fetch URLs from API
+  const detectSource = (url: string): UrlSource | undefined => {
+    const host = new URL(url).hostname;
+    if (host.includes('facebook.com')) return 'facebook';
+    if (host.includes('instagram.com')) return 'instagram';
+    if (host.includes('threads.net')) return 'threads';
+    if (host.includes('youtube.com') || host.includes('youtu.be')) return 'youtube';
+  };
+
+  const fetchMetadata = async (url: string) => {
+    const res = await fetch(url);
+    const text = await res.text();
+    const doc = new DOMParser().parseFromString(text, 'text/html');
+    const title = doc.querySelector('title')?.textContent || undefined;
+    const desc =
+      doc.querySelector('meta[property="og:description"]')?.getAttribute('content') ||
+      doc.querySelector('meta[name="description"]')?.getAttribute('content') ||
+      undefined;
+    const image = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') || undefined;
+    return { title, description: desc, image };
+  };
+
+  const handleAddUrl = async () => {
+    const url = newUrl.trim();
+    if (!url) return;
+    try {
+      const meta = await fetchMetadata(url);
+      const data: UrlData = {
+        _id: Date.now().toString(),
+        url,
+        title: meta.title,
+        description: meta.description,
+        image: meta.image,
+        source: detectSource(url),
+        createdAt: new Date().toISOString(),
+      };
+      await saveUrl(data);
+      setUrls((prev) => [data, ...prev]);
+      setNewUrl('');
+      showToast('URL saved!', 'success');
+    } catch (err) {
+      showToast('Failed to fetch URL metadata. CORS may be blocked.', 'error');
+      console.error('Error adding URL:', err);
+    }
+  };
+
+  // Fetch URLs from IndexedDB
   const fetchUrls = useCallback(async (isRefresh = false) => {
     try {
       if (isRefresh) {
@@ -126,9 +160,9 @@ function App() {
       } else {
         setLoading(true);
       }
-      
-      const response = await axios.get(`${API_BASE_URL}/urls`);
-      setUrls(response.data);
+
+      const stored = await getUrls();
+      setUrls(stored);
       setError(null);
       
       if (isRefresh) {
@@ -139,7 +173,7 @@ function App() {
         }, 2000);
       }
     } catch (err) {
-      const errorMessage = 'Failed to fetch URLs. Make sure the server is running.';
+      const errorMessage = 'Failed to load URLs from your browser storage.';
       setError(errorMessage);
       showToast(errorMessage, 'error');
       console.error('Error fetching URLs:', err);
@@ -147,7 +181,7 @@ function App() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [API_BASE_URL, showToast]);
+  }, [showToast]);
 
   useEffect(() => {
     fetchUrls();
@@ -224,25 +258,21 @@ function App() {
       </div>
 
       <main className="main">
+        <div className="add-url-form">
+          <input
+            className="add-url-input"
+            type="text"
+            placeholder="Enter URL"
+            value={newUrl}
+            onChange={(e) => setNewUrl(e.target.value)}
+          />
+          <button className="add-url-btn" onClick={handleAddUrl}>Add</button>
+        </div>
         {urls.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">📭</div>
             <h2>No URLs saved yet</h2>
-            <p>Send a URL to your Telegram bot to see it appear here!</p>
-            <div className="empty-steps">
-              <div className="step">
-                <span className="step-number">1</span>
-                <span>Open Telegram</span>
-              </div>
-              <div className="step">
-                <span className="step-number">2</span>
-                <span>Find your bot</span>
-              </div>
-              <div className="step">
-                <span className="step-number">3</span>
-                <span>Send any URL</span>
-              </div>
-            </div>
+            <p>Use the form above to save a URL.</p>
           </div>
         ) : (
           <>

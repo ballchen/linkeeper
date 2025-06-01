@@ -12,6 +12,7 @@ A comprehensive system that consists of a Telegram bot and a website to save and
 - 🔄 **Real-time Updates**: Automatically refresh URL list
 - 🖼️ **Rich URL Previews**: Show title, description, images, source badges, and tags
 - 🏗️ **Clean Architecture**: Well-structured codebase following Clean Architecture principles
+- 💾 **Offline Storage**: Save URLs in the browser with IndexedDB
 
 ## 🎯 Supported Platforms
 
@@ -230,6 +231,14 @@ npm run dev     # Start development server
 npm run build   # Build for production
 npm run preview # Preview production build
 ```
+
+### Deploying to GitHub Pages
+
+The workflow in `.github/workflows/pages.yml` builds the `client` app and publishes the `dist` folder to GitHub Pages whenever changes are pushed to the `main` branch. It also checks that the `client/dist` directory exists before uploading.
+
+1. Commit your changes and push to `main`.
+2. GitHub Actions will build the Vite project and deploy it.
+3. The site will be available under the repository's Pages URL.
 
 ## 🔧 Troubleshooting
 
