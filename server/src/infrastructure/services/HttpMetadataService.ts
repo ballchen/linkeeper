@@ -38,18 +38,31 @@ export class HttpMetadataService implements MetadataService {
   }
 
   private extractTitle($: cheerio.CheerioAPI): string {
-    return $('title').text() || 
-           $('meta[property="og:title"]').attr('content') || 
-           '';
+    return (
+      $('meta[property="og:title"]').attr('content') ||
+      $('meta[name="twitter:title"]').attr('content') ||
+      $('meta[name="title"]').attr('content') ||
+      $('title').first().text() ||
+      ''
+    );
   }
 
   private extractDescription($: cheerio.CheerioAPI): string {
-    return $('meta[name="description"]').attr('content') || 
-           $('meta[property="og:description"]').attr('content') || 
-           '';
+    return (
+      $('meta[property="og:description"]').attr('content') ||
+      $('meta[name="twitter:description"]').attr('content') ||
+      $('meta[name="description"]').attr('content') ||
+      ''
+    );
   }
 
   private extractImage($: cheerio.CheerioAPI): string {
-    return $('meta[property="og:image"]').attr('content') || '';
+    return (
+      $('meta[property="og:image"]').attr('content') ||
+      $('meta[property="og:image:url"]').attr('content') ||
+      $('meta[property="og:image:secure_url"]').attr('content') ||
+      $('meta[name="twitter:image"]').attr('content') ||
+      ''
+    );
   }
 } 

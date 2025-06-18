@@ -65,6 +65,27 @@ export class MongoUrlRepository implements UrlRepository {
     await UrlModel.findByIdAndDelete(id);
   }
 
+  async update(url: Url): Promise<Url> {
+    const updatedDoc = await UrlModel.findByIdAndUpdate(
+      url.id,
+      {
+        url: url.url,
+        title: url.metadata.title,
+        description: url.metadata.description,
+        image: url.metadata.image,
+        source: url.metadata.source,
+        tags: url.metadata.tags || []
+      },
+      { new: true }
+    );
+
+    if (!updatedDoc) {
+      throw new Error(`URL with id ${url.id} not found`);
+    }
+
+    return this.mapToEntity(updatedDoc);
+  }
+
   private mapToEntity(doc: UrlDocument): Url {
     const metadata: UrlMetadata = {
       title: doc.title,
