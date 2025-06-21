@@ -6,6 +6,7 @@ import { LoginModal } from './components/LoginModal'
 import { UnifiedToolbar } from './components/UnifiedToolbar'
 import { apiService } from './services/apiService'
 import type { UrlData } from './services/apiService'
+import { API_CONFIG, API_ENDPOINTS } from './config/api'
 import AddUrlPage from './AddUrlPage'
 import './App.css'
 
@@ -466,7 +467,7 @@ function App() {
   useEffect(() => {
     const getAuthConfig = async () => {
       try {
-        const response = await fetch('http://localhost:4000/api/auth/config');
+        const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH_CONFIG}`);
         const data = await response.json();
         
         if (data.success && data.config.googleClientId) {

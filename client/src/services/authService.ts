@@ -26,8 +26,10 @@ export interface AuthError {
   message: string;
 }
 
+import { API_CONFIG, API_ENDPOINTS } from '../config/api';
+
 class AuthService {
-  private readonly API_BASE = 'http://localhost:4000/api';
+  private readonly API_BASE = API_CONFIG.BASE_URL;
   private token: string | null = null;
 
   constructor() {
@@ -39,7 +41,7 @@ class AuthService {
    * Get authentication configuration from server
    */
   async getAuthConfig(): Promise<AuthConfig> {
-    const response = await fetch(`${this.API_BASE}/auth/config`);
+    const response = await fetch(`${this.API_BASE}${API_ENDPOINTS.AUTH_CONFIG}`);
     
     if (!response.ok) {
       throw new Error('Failed to get authentication configuration');
@@ -52,7 +54,7 @@ class AuthService {
    * Login with Google ID token
    */
   async loginWithGoogle(idToken: string): Promise<LoginResponse> {
-    const response = await fetch(`${this.API_BASE}/auth/google`, {
+    const response = await fetch(`${this.API_BASE}${API_ENDPOINTS.AUTH_GOOGLE}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -82,7 +84,7 @@ class AuthService {
     }
 
     try {
-      const response = await fetch(`${this.API_BASE}/auth/verify`, {
+      const response = await fetch(`${this.API_BASE}${API_ENDPOINTS.AUTH_VERIFY}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.token}`,
@@ -113,7 +115,7 @@ class AuthService {
       throw new Error('No authentication token available');
     }
 
-    const response = await fetch(`${this.API_BASE}/auth/profile`, {
+    const response = await fetch(`${this.API_BASE}${API_ENDPOINTS.AUTH_PROFILE}`, {
       headers: {
         'Authorization': `Bearer ${this.token}`,
       },

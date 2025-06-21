@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosResponse } from 'axios';
 import { authService } from './authService';
+import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 
 export interface UrlData {
   _id: string;
@@ -23,13 +24,13 @@ export interface AddUrlResponse {
 }
 
 class ApiService {
-  private readonly API_BASE = 'http://localhost:4000/api';
+  private readonly API_BASE = API_CONFIG.BASE_URL;
   private client: AxiosInstance;
 
   constructor() {
     this.client = axios.create({
       baseURL: this.API_BASE,
-      timeout: 10000,
+      timeout: API_CONFIG.TIMEOUT,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -66,7 +67,7 @@ class ApiService {
    */
   async getUrls(): Promise<UrlData[]> {
     try {
-      const response: AxiosResponse<UrlData[]> = await this.client.get('/urls');
+      const response: AxiosResponse<UrlData[]> = await this.client.get(API_ENDPOINTS.URLS);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch URLs:', error);
@@ -79,7 +80,7 @@ class ApiService {
    */
   async addUrl(urlData: AddUrlRequest): Promise<AddUrlResponse> {
     try {
-      const response: AxiosResponse<AddUrlResponse> = await this.client.post('/urls', urlData);
+      const response: AxiosResponse<AddUrlResponse> = await this.client.post(API_ENDPOINTS.URLS, urlData);
       return response.data;
     } catch (error) {
       console.error('Failed to add URL:', error);
@@ -92,7 +93,7 @@ class ApiService {
    */
   async healthCheck(): Promise<{ status: string; timestamp: string; uptime: number }> {
     try {
-      const response = await this.client.get('/health');
+      const response = await this.client.get(API_ENDPOINTS.HEALTH);
       return response.data;
     } catch (error) {
       console.error('Health check failed:', error);
