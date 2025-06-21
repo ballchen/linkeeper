@@ -320,14 +320,6 @@ function App() {
                         <img 
                           src={urlData.image} 
                           alt={urlData.title || 'URL preview'} 
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const placeholder = target.parentElement?.querySelector('.image-placeholder');
-                            if (placeholder) {
-                              (placeholder as HTMLElement).style.display = 'flex';
-                            }
-                          }}
                           loading="lazy"
                         />
                       ) : null}

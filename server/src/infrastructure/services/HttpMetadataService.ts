@@ -2,10 +2,14 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { MetadataService } from '../../domain/services/MetadataService';
 import { UrlMetadata } from '../../domain/entities/Url';
+import { S3ImageService } from './S3ImageService';
+import logger from '../../utils/logger';
 
 export class HttpMetadataService implements MetadataService {
   private readonly timeout = 10000; // 10 seconds
   private readonly userAgent = 'Mozilla/5.0 (compatible; URL-Saver-Bot/1.0)';
+
+  constructor(private readonly s3ImageService: S3ImageService) {}
 
   async fetchMetadata(url: string): Promise<UrlMetadata> {
     try {
@@ -20,14 +24,32 @@ export class HttpMetadataService implements MetadataService {
 
       const title = this.extractTitle($);
       const description = this.extractDescription($);
-      const image = this.extractImage($);
+      const originalImageUrl = this.extractImage($);
+
+      // Upload image to S3 if available
+      let s3ImageKey: string | null = null;
+      if (originalImageUrl) {
+        try {
+          logger.info(`Uploading image to S3 for URL: ${url}`);
+          s3ImageKey = await this.s3ImageService.uploadImageFromUrl(originalImageUrl, url);
+          
+          if (s3ImageKey) {
+            logger.info(`Image uploaded to S3 successfully: ${s3ImageKey}`);
+          } else {
+            logger.warn(`Failed to upload image to S3 for URL: ${url}`);
+          }
+        } catch (error: any) {
+          logger.error(`Error uploading image to S3: ${error.message}`);
+        }
+      }
 
       return {
         title,
         description,
-        image
+        image: s3ImageKey || '' // Use S3 key instead of original URL
       };
     } catch (error) {
+      logger.error(`Error fetching metadata for URL ${url}: ${error}`);
       // Return empty metadata if fetching fails
       return {
         title: '',

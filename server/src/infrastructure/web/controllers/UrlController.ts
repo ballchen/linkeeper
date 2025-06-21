@@ -1,12 +1,27 @@
 import { Request, Response } from 'express';
 import { AddUrlUseCase } from '../../../application/use-cases/AddUrlUseCase';
 import { GetUrlsUseCase } from '../../../application/use-cases/GetUrlsUseCase';
+import { S3ImageService } from '../../services/S3ImageService';
 
 export class UrlController {
   constructor(
     private readonly addUrlUseCase: AddUrlUseCase,
-    private readonly getUrlsUseCase: GetUrlsUseCase
+    private readonly getUrlsUseCase: GetUrlsUseCase,
+    private readonly s3ImageService: S3ImageService
   ) {}
+
+  private async getImageUrl(s3Key: string): Promise<string> {
+    if (!s3Key || s3Key.trim() === '') {
+      return '';
+    }
+    
+    try {
+      return await this.s3ImageService.getImageUrl(s3Key);
+    } catch (error) {
+      console.error('Error generating S3 image URL:', error);
+      return '';
+    }
+  }
 
   async addUrl(req: Request, res: Response): Promise<void> {
     try {
@@ -39,13 +54,16 @@ export class UrlController {
 
       const result = await this.addUrlUseCase.execute({ url, tags });
 
+      // Convert S3 key to actual URL
+      const imageUrl = await this.getImageUrl(result.url.metadata.image || '');
+
       const statusCode = result.isNew ? 201 : 200;
       res.status(statusCode).json({
         id: result.url.id,
         url: result.url.url,
         title: result.url.metadata.title,
         description: result.url.metadata.description,
-        image: result.url.metadata.image,
+        image: imageUrl,
         source: result.url.metadata.source,
         tags: result.url.metadata.tags || [],
         createdAt: result.url.createdAt,
@@ -81,12 +99,15 @@ export class UrlController {
 
       const result = await this.addUrlUseCase.execute({ url });
 
+      // Convert S3 key to actual URL
+      const imageUrl = await this.getImageUrl(result.url.metadata.image || '');
+
       res.status(200).json({
         id: result.url.id,
         url: result.url.url,
         title: result.url.metadata.title,
         description: result.url.metadata.description,
-        image: result.url.metadata.image,
+        image: imageUrl,
         source: result.url.metadata.source,
         tags: result.url.metadata.tags || [],
         createdAt: result.url.createdAt,
@@ -112,15 +133,20 @@ export class UrlController {
     try {
       const result = await this.getUrlsUseCase.execute();
 
-      const urls = result.urls.map(url => ({
-        id: url.id,
-        url: url.url,
-        title: url.metadata.title,
-        description: url.metadata.description,
-        image: url.metadata.image,
-        source: url.metadata.source,
-        tags: url.metadata.tags || [],
-        createdAt: url.createdAt
+      // Convert S3 keys to actual URLs for all URLs
+      const urls = await Promise.all(result.urls.map(async (url) => {
+        const imageUrl = await this.getImageUrl(url.metadata.image || '');
+        
+        return {
+          id: url.id,
+          url: url.url,
+          title: url.metadata.title,
+          description: url.metadata.description,
+          image: imageUrl,
+          source: url.metadata.source,
+          tags: url.metadata.tags || [],
+          createdAt: url.createdAt
+        };
       }));
 
       res.status(200).json(urls);
@@ -131,4 +157,6 @@ export class UrlController {
       });
     }
   }
+
+
 } 
