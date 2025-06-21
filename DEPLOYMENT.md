@@ -72,6 +72,7 @@ make logs           # 查看後端日誌
 make clean          # 清理建置檔案
 make backup         # 建立備份
 make health         # 健康檢查
+make reanalyze      # 重新分析所有 URL 並上傳圖片到 S3
 ```
 
 ## 🎯 部署選項
@@ -281,6 +282,24 @@ make backup    # 手動備份
 ```
 
 備份檔案會儲存在 `backups/` 目錄中，系統會自動保留最近 5 個備份。
+
+### 重新分析和 S3 遷移
+```bash
+make reanalyze      # 重新分析所有 URL 並上傳圖片到 S3
+```
+
+**什麼時候需要執行重新分析？**
+- 升級到 S3 圖片儲存後，將舊的圖片 URL 遷移到 S3
+- 修復損壞的圖片連結
+- 更新過時的 metadata 資訊
+- 重新檢測 URL 來源類型（Facebook、Instagram 等）
+
+**重新分析功能：**
+- 🔄 重新獲取所有 URL 的 metadata
+- 📸 下載並上傳圖片到 S3
+- 🏷️ 重新檢測 URL 來源類型
+- 📊 詳細的處理統計報告
+- ⚡ 智慧錯誤處理和恢復
 
 ## 🎉 部署完成
 

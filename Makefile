@@ -32,6 +32,8 @@ help:
 	@echo "Maintenance:"
 	@echo "  make clean         - Clean build artifacts"
 	@echo "  make backup        - Create backup of current deployment"
+	@echo "  make reanalyze     - Re-analyze all URLs and upload images to S3"
+	@echo "  make health        - Perform health check on all services"
 
 # Setup and installation
 install:
@@ -142,4 +144,13 @@ health:
 	@echo "🏥 Performing health check..."
 	@curl -f -s http://localhost:4000/api/urls > /dev/null && echo "✅ Backend healthy" || echo "❌ Backend unhealthy"
 	@curl -f -s https://lk.ballchen.cc > /dev/null && echo "✅ Frontend accessible" || echo "❌ Frontend inaccessible"
-	@curl -f -s https://lk-api.ballchen.cc/api/urls > /dev/null && echo "✅ API accessible" || echo "❌ API inaccessible" 
+	@curl -f -s https://lk-api.ballchen.cc/api/urls > /dev/null && echo "✅ API accessible" || echo "❌ API inaccessible"
+
+# Data management
+reanalyze:
+	@echo "🔄 Re-analyzing all URLs and uploading images to S3..."
+	cd server && npm run reanalyze
+
+reanalyze-build:
+	@echo "🔄 Building and re-analyzing all URLs..."
+	cd server && npm run build && npm run reanalyze 
