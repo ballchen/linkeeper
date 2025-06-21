@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { GoogleOAuthProvider } from '@react-oauth/google'
+import InfiniteScroll from 'react-infinite-scroll-component'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { LoginModal } from './components/LoginModal'
 import { UnifiedToolbar } from './components/UnifiedToolbar'
@@ -30,8 +31,8 @@ function AppContent() {
   const [urls, setUrls] = useState<UrlData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [refreshSuccess, setRefreshSuccess] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [nextCursor, setNextCursor] = useState<string | undefined>();
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('comfortable');
   const processedStateRef = useRef<string | null>(null);
@@ -124,31 +125,25 @@ function AppContent() {
     }
   };
 
-  // Fetch URLs from API using the new authenticated service
-  const fetchUrls = useCallback(async (isRefresh = false) => {
+  // Fetch initial URLs
+  const fetchInitialUrls = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      if (isRefresh) {
-        setRefreshing(true);
-        setRefreshSuccess(false);
-      } else {
-        setLoading(true);
-      }
+      const response = await apiService.getUrlsPaginated({
+        limit: 50,
+        sortBy: 'createdAt',
+        order: 'desc'
+      });
       
-      const urlsData = await apiService.getUrls();
-      setUrls(urlsData);
+      setUrls(response.data);
+      setHasMore(response.pagination.hasMore);
+      setNextCursor(response.pagination.nextCursor);
       setError(null);
-      
-      if (isRefresh) {
-        // Show success indicator
-        setRefreshSuccess(true);
-        setTimeout(() => {
-          setRefreshSuccess(false);
-        }, 2000);
-      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch URLs. Make sure the server is running.';
       setError(errorMessage);
-      // Show error toast using a direct call instead of dependency
+      // Show error toast
       const id = Date.now().toString();
       const newToast: ToastMessage = { id, message: errorMessage, type: 'error' };
       setToasts(prev => [...prev, newToast]);
@@ -158,16 +153,41 @@ function AppContent() {
       console.error('Error fetching URLs:', err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
-  }, []); // Remove showToast dependency
+  }, []);
+
+  // Fetch more URLs for infinite scroll
+  const fetchMoreUrls = useCallback(async () => {
+    if (!hasMore || !nextCursor) return;
+    
+    try {
+      const response = await apiService.getUrlsPaginated({
+        limit: 50,
+        cursor: nextCursor,
+        sortBy: 'createdAt',
+        order: 'desc'
+      });
+      
+      setUrls(prev => [...prev, ...response.data]);
+      setHasMore(response.pagination.hasMore);
+      setNextCursor(response.pagination.nextCursor);
+    } catch (err) {
+      // Show error toast for load more failure
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load more URLs';
+      const id = Date.now().toString();
+      const newToast: ToastMessage = { id, message: errorMessage, type: 'error' };
+      setToasts(prev => [...prev, newToast]);
+      setTimeout(() => {
+        setToasts(prev => prev.filter(toast => toast.id !== id));
+      }, 3000);
+      console.error('Error fetching more URLs:', err);
+      throw err; // Re-throw for InfiniteScroll error handling
+    }
+  }, [hasMore, nextCursor]);
 
   useEffect(() => {
-    fetchUrls();
-    // Refresh every 30 seconds
-    const interval = setInterval(() => fetchUrls(true), 30000);
-    return () => clearInterval(interval);
-  }, [fetchUrls]);
+    fetchInitialUrls();
+  }, [fetchInitialUrls]);
 
   // Handle navigation state message
   useEffect(() => {
@@ -220,7 +240,7 @@ function AppContent() {
     }
   };
 
-  if (loading && !refreshing) {
+  if (loading) {
     return (
       <div className="app">
         <div className="loading-container">
@@ -231,14 +251,14 @@ function AppContent() {
     );
   }
 
-  if (error && !refreshing) {
+  if (error && urls.length === 0) {
     return (
       <div className="app">
         <div className="error-container">
           <div className="error-icon">⚠️</div>
           <h2>糟糕！出現了問題</h2>
           <p>{error}</p>
-          <button onClick={() => fetchUrls()} className="retry-btn">
+          <button onClick={fetchInitialUrls} className="retry-btn">
             <span>🔄</span>
             重試
           </button>
@@ -250,19 +270,7 @@ function AppContent() {
   const currentLayoutConfig = getLayoutConfig(layoutMode);
 
   return (
-    <div className="app">{/* Removed the app header - now using unified toolbar */}
-
-      {/* Refresh Indicator */}
-      {(refreshing || refreshSuccess) && (
-        <div className="refresh-indicator">
-          {refreshing ? (
-            <div className="refresh-spinner">🔄</div>
-          ) : (
-            <div className="refresh-success">✅</div>
-          )}
-        </div>
-      )}
-
+    <div className="app">
       {/* Toast notifications */}
       <div className="toast-container">
         {toasts.map((toast) => (
@@ -301,103 +309,122 @@ function AppContent() {
               onLayoutChange={handleLayoutChange} 
             />
             
-            <div 
-              className={`url-grid layout-${layoutMode}`}
-              style={{ 
-                gridTemplateColumns: currentLayoutConfig.columns 
-              }}
+            <InfiniteScroll
+              dataLength={urls.length}
+              next={fetchMoreUrls}
+              hasMore={hasMore}
+              loader={
+                <div className="loading-more">
+                  <div className="loading-spinner"></div>
+                  <span>載入更多...</span>
+                </div>
+              }
+              endMessage={
+                <div className="no-more-data">
+                  <span>已載入所有資料</span>
+                </div>
+              }
+              scrollThreshold={0.9}
+              className="infinite-scroll-container"
             >
-              {urls.map((urlData, index) => {
-                const sourceInfo = getSourceInfo(urlData.source);
-                return (
-                  <div 
-                    key={urlData._id} 
-                    className={`url-card layout-${layoutMode}`}
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <div className="url-image">
-                      {urlData.image ? (
-                        <img 
-                          src={urlData.image} 
-                          alt={urlData.title || 'URL preview'} 
-                          loading="lazy"
-                        />
-                      ) : null}
-                      <div className="image-placeholder" style={{ display: urlData.image ? 'none' : 'flex' }}>
-                        <span className="placeholder-icon">🔗</span>
-                        <span className="placeholder-text">沒有預覽</span>
-                      </div>
-                      
-                      {/* Source badge */}
-                      {sourceInfo && (
-                        <div className="source-badge" style={{ backgroundColor: sourceInfo.color }}>
+              <div 
+                className={`url-grid layout-${layoutMode}`}
+                style={{ 
+                  gridTemplateColumns: currentLayoutConfig.columns 
+                }}
+              >
+                {urls.map((urlData, index) => {
+                  const sourceInfo = getSourceInfo(urlData.source);
+                  return (
+                    <div 
+                      key={urlData._id} 
+                      className={`url-card layout-${layoutMode}`}
+                      style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                      <div className="url-image">
+                        {urlData.image ? (
                           <img 
-                            src={sourceInfo.icon} 
-                            alt={sourceInfo.name} 
-                            className="source-icon"
+                            src={urlData.image} 
+                            alt={urlData.title || 'URL preview'} 
+                            loading="lazy"
                           />
-                          <span className="source-name">{sourceInfo.name}</span>
+                        ) : null}
+                        <div className="image-placeholder" style={{ display: urlData.image ? 'none' : 'flex' }}>
+                          <span className="placeholder-icon">🔗</span>
+                          <span className="placeholder-text">沒有預覽</span>
                         </div>
-                      )}
-                    </div>
-                    
-                    <div className="url-content">
-                      <h3 className="url-title">
-                        {urlData.title || '沒有標題'}
-                      </h3>
-                      
-                      {urlData.description && (
-                        <p className="url-description">
-                          {urlData.description}
-                        </p>
-                      )}
-                      
-                      {/* Tags */}
-                      {urlData.tags && urlData.tags.length > 0 && (
-                        <div className="url-tags">
-                          {urlData.tags.map((tag, tagIndex) => (
-                            <span key={tagIndex} className="tag">
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      
-                      <div className="url-actions">
-                        <a 
-                          href={urlData.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="url-link"
-                        >
-                          <span className="link-icon">🔗</span>
-                          <span className="link-text">訪問連結</span>
-                        </a>
                         
-                        <button 
-                          onClick={() => copyToClipboard(urlData.url)}
-                          className="share-btn"
-                          title="複製 URL 到剪貼板"
-                        >
-                          <span className="share-icon">📋</span>
-                          <span className="share-text">分享</span>
-                        </button>
+                        {/* Source badge */}
+                        {sourceInfo && (
+                          <div className="source-badge" style={{ backgroundColor: sourceInfo.color }}>
+                            <img 
+                              src={sourceInfo.icon} 
+                              alt={sourceInfo.name} 
+                              className="source-icon"
+                            />
+                            <span className="source-name">{sourceInfo.name}</span>
+                          </div>
+                        )}
                       </div>
                       
-                      <div className="url-meta">
-                        <span className="url-date">
-                          <span className="date-icon">🕒</span>
-                          {formatDate(urlData.createdAt)}
-                        </span>
-                        <span className="url-domain">
-                          {new URL(urlData.url).hostname}
-                        </span>
+                      <div className="url-content">
+                        <h3 className="url-title">
+                          {urlData.title || '沒有標題'}
+                        </h3>
+                        
+                        {urlData.description && (
+                          <p className="url-description">
+                            {urlData.description}
+                          </p>
+                        )}
+                        
+                        {/* Tags */}
+                        {urlData.tags && urlData.tags.length > 0 && (
+                          <div className="url-tags">
+                            {urlData.tags.map((tag, tagIndex) => (
+                              <span key={tagIndex} className="tag">
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <div className="url-actions">
+                          <a 
+                            href={urlData.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="url-link"
+                          >
+                            <span className="link-icon">🔗</span>
+                            <span className="link-text">訪問連結</span>
+                          </a>
+                          
+                          <button 
+                            onClick={() => copyToClipboard(urlData.url)}
+                            className="share-btn"
+                            title="複製 URL 到剪貼板"
+                          >
+                            <span className="share-icon">📋</span>
+                            <span className="share-text">分享</span>
+                          </button>
+                        </div>
+                        
+                        <div className="url-meta">
+                          <span className="url-date">
+                            <span className="date-icon">🕒</span>
+                            {formatDate(urlData.createdAt)}
+                          </span>
+                          <span className="url-domain">
+                            {new URL(urlData.url).hostname}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </InfiniteScroll>
           </>
         )}
       </main>

@@ -2,7 +2,7 @@
 .unified-toolbar {
   position: fixed;
   top: 24px;
-  right: 24px;
+  left: 24px;
   z-index: 1000;
 }
 
@@ -37,8 +37,8 @@
 
 /* Trigger Avatar - Now the only element */
 .trigger-avatar {
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   overflow: hidden;
   border: 2px solid rgba(255, 255, 255, 0.8);
@@ -68,7 +68,7 @@
 .toolbar-dropdown {
   position: absolute;
   top: calc(100% + 8px);
-  right: 0;
+  left: 0;
   width: 240px;
   max-width: calc(100vw - 24px);
   background: white;
@@ -278,7 +278,7 @@
 @media (max-width: 768px) {
   .unified-toolbar {
     top: 16px;
-    right: 16px;
+    left: 16px;
   }
   
   .toolbar-trigger {
@@ -287,8 +287,8 @@
   }
   
   .trigger-avatar {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
   }
   
   .toolbar-dropdown {

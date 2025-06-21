@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { Url, UrlMetadata } from '../../domain/entities/Url';
-import { UrlRepository } from '../../domain/repositories/UrlRepository';
+import { UrlRepository, UrlQueryParams, PaginatedResult } from '../../domain/repositories/UrlRepository';
 import { UrlSource } from '../../domain/services/UrlAnalysisService';
 
 interface UrlDocument extends Document {
@@ -54,6 +54,84 @@ export class MongoUrlRepository implements UrlRepository {
   async findAll(): Promise<Url[]> {
     const urlDocs = await UrlModel.find().sort({ createdAt: -1 });
     return urlDocs.map(doc => this.mapToEntity(doc));
+  }
+
+  async findWithPagination(params: UrlQueryParams): Promise<PaginatedResult<Url>> {
+    const {
+      limit = 50,
+      cursor,
+      sortBy = 'createdAt',
+      order = 'desc',
+      search,
+      source,
+      tags
+    } = params;
+
+    // Build query
+    const query: any = {};
+
+    // Cursor-based pagination using _id
+    if (cursor) {
+      try {
+        query._id = order === 'desc' 
+          ? { $lt: new mongoose.Types.ObjectId(cursor) }
+          : { $gt: new mongoose.Types.ObjectId(cursor) };
+      } catch (error) {
+        throw new Error('Invalid cursor format');
+      }
+    }
+
+    // Search functionality (for future)
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { url: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Source filter (for future)
+    if (source) {
+      query.source = source;
+    }
+
+    // Tags filter (for future)
+    if (tags && tags.length > 0) {
+      query.tags = { $in: tags };
+    }
+
+    // Sort configuration
+    const sortConfig: any = {};
+    sortConfig[sortBy] = order === 'desc' ? -1 : 1;
+    sortConfig._id = order === 'desc' ? -1 : 1; // Secondary sort by _id for consistency
+
+    // Fetch one extra to check if there are more results
+    const urlDocs = await UrlModel
+      .find(query)
+      .sort(sortConfig)
+      .limit(limit + 1);
+
+    // Check if there are more results
+    const hasMore = urlDocs.length > limit;
+    if (hasMore) {
+      urlDocs.pop(); // Remove the extra document
+    }
+
+    // Get next cursor
+    const nextCursor = urlDocs.length > 0 && hasMore
+      ? urlDocs[urlDocs.length - 1]._id.toString()
+      : undefined;
+
+    const urls = urlDocs.map(doc => this.mapToEntity(doc));
+
+    return {
+      data: urls,
+      pagination: {
+        hasMore,
+        nextCursor,
+        count: urls.length
+      }
+    };
   }
 
   async findById(id: string): Promise<Url | null> {

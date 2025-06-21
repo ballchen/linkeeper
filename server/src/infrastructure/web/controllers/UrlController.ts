@@ -131,6 +131,16 @@ export class UrlController {
 
   async getUrls(req: Request, res: Response): Promise<void> {
     try {
+      // Check if pagination parameters are provided
+      const { limit, cursor, sortBy, order, search, source, tags } = req.query;
+      
+      // If any pagination parameters are provided, use paginated response
+      if (limit || cursor || search || source || tags) {
+        await this.getUrlsPaginated(req, res);
+        return;
+      }
+
+      // Legacy response for backward compatibility
       const result = await this.getUrlsUseCase.execute();
 
       // Convert S3 keys to actual URLs for all URLs
@@ -138,7 +148,7 @@ export class UrlController {
         const imageUrl = await this.getImageUrl(url.metadata.image || '');
         
         return {
-          id: url.id,
+          _id: url.id,
           url: url.url,
           title: url.metadata.title,
           description: url.metadata.description,
@@ -151,6 +161,86 @@ export class UrlController {
 
       res.status(200).json(urls);
     } catch (error) {
+      res.status(500).json({ 
+        error: 'Internal server error',
+        message: 'An unexpected error occurred while fetching URLs'
+      });
+    }
+  }
+
+  async getUrlsPaginated(req: Request, res: Response): Promise<void> {
+    try {
+      const { 
+        limit = '50', 
+        cursor, 
+        sortBy = 'createdAt', 
+        order = 'desc',
+        search,
+        source,
+        tags
+      } = req.query;
+
+      // Validate and parse parameters
+      const parsedLimit = parseInt(limit as string, 10);
+      if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
+        res.status(400).json({
+          error: 'Invalid limit',
+          message: 'Limit must be a number between 1 and 100'
+        });
+        return;
+      }
+
+      // Parse tags if provided
+      let parsedTags: string[] | undefined;
+      if (tags) {
+        if (Array.isArray(tags)) {
+          parsedTags = tags as string[];
+        } else if (typeof tags === 'string') {
+          parsedTags = tags.split(',').map(tag => tag.trim());
+        }
+      }
+
+      const request = {
+        limit: parsedLimit,
+        cursor: cursor as string,
+        sortBy: sortBy as 'createdAt',
+        order: order as 'desc' | 'asc',
+        search: search as string,
+        source: source as string,
+        tags: parsedTags
+      };
+
+      const result = await this.getUrlsUseCase.executeWithPagination(request);
+
+      // Convert S3 keys to actual URLs for all URLs
+      const urls = await Promise.all(result.data.map(async (url) => {
+        const imageUrl = await this.getImageUrl(url.metadata.image || '');
+        
+        return {
+          _id: url.id,
+          url: url.url,
+          title: url.metadata.title,
+          description: url.metadata.description,
+          image: imageUrl,
+          source: url.metadata.source,
+          tags: url.metadata.tags || [],
+          createdAt: url.createdAt
+        };
+      }));
+
+      res.status(200).json({
+        data: urls,
+        pagination: result.pagination
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Invalid cursor')) {
+        res.status(400).json({
+          error: 'Invalid cursor',
+          message: error.message
+        });
+        return;
+      }
+
       res.status(500).json({ 
         error: 'Internal server error',
         message: 'An unexpected error occurred while fetching URLs'

@@ -473,7 +473,7 @@ body {
 .floating-toolbar {
   position: fixed;
   top: var(--spacing-lg);
-  right: var(--spacing-lg);
+  left: var(--spacing-lg);
   z-index: 999;
   display: flex;
   flex-direction: column;
@@ -1421,7 +1421,7 @@ body {
   /* Unified toolbar responsive */
   .floating-toolbar {
     top: var(--spacing-sm);
-    right: var(--spacing-sm);
+    left: var(--spacing-sm);
     gap: var(--spacing-xs);
   }
   
@@ -1684,7 +1684,7 @@ body {
 
   .floating-toolbar {
     top: var(--spacing-xs);
-    right: var(--spacing-xs);
+    left: var(--spacing-xs);
     gap: 4px;
   }
   
@@ -2041,6 +2041,80 @@ body {
     padding: var(--spacing-sm);
     min-width: 50px;
   }
+}
+
+/* ===== INFINITE SCROLL STYLES ===== */
+.infinite-scroll-container {
+  width: 100%;
+}
+
+/* Loading more indicator */
+.loading-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  gap: 1rem;
+  text-align: center;
+}
+
+.loading-more .loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-color);
+  border-top: 2px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-more span {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* No more data indicator */
+.no-more-data {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 0.95rem;
+}
+
+/* Load more error (for future use) */
+.load-more-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.load-more-error .error-icon {
+  font-size: 2rem;
+}
+
+.retry-btn-small {
+  background: var(--error-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.retry-btn-small:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(229, 62, 62, 0.3);
 }
 
 /* ===== ACCESSIBILITY ===== */

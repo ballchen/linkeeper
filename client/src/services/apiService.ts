@@ -23,6 +23,25 @@ export interface AddUrlResponse {
   url: UrlData;
 }
 
+export interface GetUrlsParams {
+  limit?: number;
+  cursor?: string;
+  sortBy?: 'createdAt';
+  order?: 'desc' | 'asc';
+  search?: string;
+  source?: string;
+  tags?: string[];
+}
+
+export interface PaginatedUrlResponse {
+  data: UrlData[];
+  pagination: {
+    hasMore: boolean;
+    nextCursor?: string;
+    count: number;
+  };
+}
+
 class ApiService {
   private readonly API_BASE = API_CONFIG.BASE_URL;
   private client: AxiosInstance;
@@ -63,14 +82,54 @@ class ApiService {
   }
 
   /**
-   * Get all URLs
+   * Get all URLs (legacy method for backward compatibility)
    */
-  async getUrls(): Promise<UrlData[]> {
+  async getUrls(params?: GetUrlsParams): Promise<UrlData[] | PaginatedUrlResponse> {
     try {
-      const response: AxiosResponse<UrlData[]> = await this.client.get(API_ENDPOINTS.URLS);
-      return response.data;
+      if (params) {
+        // Use paginated endpoint
+        const response: AxiosResponse<PaginatedUrlResponse> = await this.client.get(API_ENDPOINTS.URLS, {
+          params: {
+            limit: params.limit,
+            cursor: params.cursor,
+            sortBy: params.sortBy,
+            order: params.order,
+            search: params.search,
+            source: params.source,
+            tags: params.tags?.join(',')
+          }
+        });
+        return response.data;
+      } else {
+        // Legacy endpoint
+        const response: AxiosResponse<UrlData[]> = await this.client.get(API_ENDPOINTS.URLS);
+        return response.data;
+      }
     } catch (error) {
       console.error('Failed to fetch URLs:', error);
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Get URLs with pagination
+   */
+  async getUrlsPaginated(params: GetUrlsParams): Promise<PaginatedUrlResponse> {
+    try {
+      const response: AxiosResponse<PaginatedUrlResponse> = await this.client.get(API_ENDPOINTS.URLS, {
+        params: {
+          limit: params.limit || 50,
+          cursor: params.cursor,
+          sortBy: params.sortBy || 'createdAt',
+          order: params.order || 'desc',
+          search: params.search,
+          source: params.source,
+          tags: params.tags?.join(',')
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch URLs with pagination:', error);
       throw this.handleError(error);
     }
   }
