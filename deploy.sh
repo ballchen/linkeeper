@@ -121,21 +121,6 @@ if [ "$DEPLOY_FRONTEND" = true ]; then
         npm run build
     fi
     
-    # Create backup of current dist (if exists)
-    if [ -d "$FRONTEND_DIST_PATH" ]; then
-        log_info "Creating backup of current frontend..."
-        sudo cp -r "$FRONTEND_DIST_PATH" "${FRONTEND_DIST_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
-    fi
-    
-    # Deploy new build
-    log_info "Copying new build to nginx directory..."
-    sudo mkdir -p "$FRONTEND_DIST_PATH"
-    sudo cp -r dist/* "$FRONTEND_DIST_PATH/"
-    
-    # Set proper permissions
-    sudo chown -R www-data:www-data "$FRONTEND_DIST_PATH"
-    sudo chmod -R 755 "$FRONTEND_DIST_PATH"
-    
     # Test nginx configuration
     log_info "Testing nginx configuration..."
     if sudo nginx -t; then
