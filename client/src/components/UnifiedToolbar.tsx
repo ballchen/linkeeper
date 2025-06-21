@@ -62,24 +62,6 @@ export const UnifiedToolbar: React.FC<UnifiedToolbarProps> = ({
     setIsOpen(false);
   };
 
-  const formatLastLogin = (lastLoginAt: string) => {
-    const date = new Date(lastLoginAt);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffDays > 0) {
-      return `${diffDays} 天前`;
-    } else if (diffHours > 0) {
-      return `${diffHours} 小時前`;
-    } else {
-      return '剛剛';
-    }
-  };
-
-  const currentLayoutConfig = getLayoutConfig(layoutMode);
-
   if (!user) {
     return null; // Don't show toolbar if not authenticated
   }
