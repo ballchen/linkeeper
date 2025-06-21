@@ -1,27 +1,27 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
+import { useAuth } from './contexts/AuthContext'
+import { apiService } from './services/apiService'
 import './AddUrlPage.css'
-
-interface AddUrlResponse {
-  id: string;
-  url: string;
-  title?: string;
-  description?: string;
-  image?: string;
-  source?: string;
-  tags: string[];
-  createdAt: string;
-  isNew: boolean;
-}
 
 function AddUrlPage() {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
+  const { user, isAuthenticated } = useAuth()
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'
+  // Redirect if not authenticated
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="add-url-page">
+        <div className="auth-loading">
+          <div className="loading-spinner"></div>
+          <p>正在檢查認證狀態...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Validate URL format
   const isValidUrl = (urlString: string): boolean => {
@@ -53,22 +53,18 @@ function AddUrlPage() {
     setLoading(true)
 
     try {
-      const response = await axios.post<AddUrlResponse>(`${API_BASE_URL}/urls/add`, {
-        url: url.trim()
-      })
+      await apiService.addUrl({ url: url.trim() })
 
       // Success - navigate back to home
       navigate('/', { 
         state: { 
-          message: response.data.isNew 
-            ? 'URL saved successfully! 🎉'
-            : 'URL already exists and has been updated! 📝',
+          message: 'URL saved successfully! 🎉',
           type: 'success'
         }
       })
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.data?.message) {
-        setError(err.response.data.message)
+      if (err instanceof Error) {
+        setError(err.message)
       } else {
         setError('Failed to save URL. Please try again.')
       }
@@ -81,8 +77,8 @@ function AddUrlPage() {
     <div className="add-url-page">
       <div className="add-url-container">
         <div className="add-url-header">
-          <h1>Add New URL</h1>
-          <p>Save a URL to your collection</p>
+          <h1>新增 URL</h1>
+          <p>將 URL 儲存到您的收藏</p>
         </div>
 
         <form onSubmit={handleSubmit} className="add-url-form">
@@ -122,7 +118,7 @@ function AddUrlPage() {
             >
               {loading ? (
                 <>
-                  <span className="loading-spinner"></span>
+                  <span className="loading-spinner" style={{width: '16px', height: '16px'}}></span>
                   Saving...
                 </>
               ) : (

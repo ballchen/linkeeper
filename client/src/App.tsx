@@ -1,6 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useLocation, Link } from 'react-router-dom'
-import axios from 'axios'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { Routes, Route, useLocation } from 'react-router-dom'
+import { GoogleOAuthProvider } from '@react-oauth/google'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { LoginModal } from './components/LoginModal'
+import { UnifiedToolbar } from './components/UnifiedToolbar'
+import { apiService } from './services/apiService'
+import type { UrlData } from './services/apiService'
+import AddUrlPage from './AddUrlPage'
 import './App.css'
 
 // Import SVG icons
@@ -12,24 +18,14 @@ import YouTubeIcon from './assets/icons/youtube.svg'
 type UrlSource = 'facebook' | 'instagram' | 'threads' | 'youtube';
 type LayoutMode = 'compact' | 'comfortable' | 'spacious' | 'list';
 
-interface UrlData {
-  _id: string;
-  url: string;
-  title?: string;
-  description?: string;
-  image?: string;
-  source?: UrlSource;
-  tags?: string[];
-  createdAt: string;
-}
-
 interface ToastMessage {
   id: string;
   message: string;
   type: 'success' | 'error';
 }
 
-function App() {
+// Main App Content Component (only rendered when authenticated)
+function AppContent() {
   const [urls, setUrls] = useState<UrlData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,9 +33,9 @@ function App() {
   const [refreshSuccess, setRefreshSuccess] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('comfortable');
+  const processedStateRef = useRef<string | null>(null);
 
   const location = useLocation();
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
   // Load layout preference from localStorage
   useEffect(() => {
@@ -99,7 +95,7 @@ function App() {
     return source ? sourceMap[source] : null;
   };
 
-  // Toast notification system (for error messages only now)
+  // Toast notification system
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     const id = Date.now().toString();
     const newToast: ToastMessage = { id, message, type };
@@ -127,7 +123,7 @@ function App() {
     }
   };
 
-  // Fetch URLs from API
+  // Fetch URLs from API using the new authenticated service
   const fetchUrls = useCallback(async (isRefresh = false) => {
     try {
       if (isRefresh) {
@@ -137,8 +133,8 @@ function App() {
         setLoading(true);
       }
       
-      const response = await axios.get(`${API_BASE_URL}/urls`);
-      setUrls(response.data);
+      const urlsData = await apiService.getUrls();
+      setUrls(urlsData);
       setError(null);
       
       if (isRefresh) {
@@ -149,15 +145,21 @@ function App() {
         }, 2000);
       }
     } catch (err) {
-      const errorMessage = 'Failed to fetch URLs. Make sure the server is running.';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch URLs. Make sure the server is running.';
       setError(errorMessage);
-      showToast(errorMessage, 'error');
+      // Show error toast using a direct call instead of dependency
+      const id = Date.now().toString();
+      const newToast: ToastMessage = { id, message: errorMessage, type: 'error' };
+      setToasts(prev => [...prev, newToast]);
+      setTimeout(() => {
+        setToasts(prev => prev.filter(toast => toast.id !== id));
+      }, 3000);
       console.error('Error fetching URLs:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [API_BASE_URL, showToast]);
+  }, []); // Remove showToast dependency
 
   useEffect(() => {
     fetchUrls();
@@ -169,11 +171,37 @@ function App() {
   // Handle navigation state message
   useEffect(() => {
     if (location.state?.message) {
-      showToast(location.state.message, location.state.type || 'success');
+      // Create a unique key for this state to prevent duplicate processing
+      const stateKey = `${location.state.message}-${location.state.type || 'success'}`;
+      
+      // Skip if we've already processed this exact state
+      if (processedStateRef.current === stateKey) {
+        return;
+      }
+      
+      processedStateRef.current = stateKey;
+      
+      // Show toast using direct state update instead of showToast dependency
+      const id = Date.now().toString();
+      const newToast: ToastMessage = { 
+        id, 
+        message: location.state.message, 
+        type: location.state.type || 'success' 
+      };
+      setToasts(prev => [...prev, newToast]);
+      setTimeout(() => {
+        setToasts(prev => prev.filter(toast => toast.id !== id));
+      }, 3000);
+      
       // Clear the state to prevent showing the message again on refresh
-      window.history.replaceState({}, document.title);
+      window.history.replaceState(null, '', window.location.pathname);
+      
+      // Reset the ref after a short delay to allow for new messages
+      setTimeout(() => {
+        processedStateRef.current = null;
+      }, 1000);
     }
-  }, [location.state, showToast]);
+  }, [location.state]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -196,7 +224,7 @@ function App() {
       <div className="app">
         <div className="loading-container">
           <div className="loading-spinner"></div>
-          <p className="loading-text">Loading your saved URLs...</p>
+          <p className="loading-text">載入您儲存的 URL...</p>
         </div>
       </div>
     );
@@ -207,11 +235,11 @@ function App() {
       <div className="app">
         <div className="error-container">
           <div className="error-icon">⚠️</div>
-          <h2>Oops! Something went wrong</h2>
+          <h2>糟糕！出現了問題</h2>
           <p>{error}</p>
           <button onClick={() => fetchUrls()} className="retry-btn">
             <span>🔄</span>
-            Try Again
+            重試
           </button>
         </div>
       </div>
@@ -221,7 +249,8 @@ function App() {
   const currentLayoutConfig = getLayoutConfig(layoutMode);
 
   return (
-    <div className="app">
+    <div className="app">{/* Removed the app header - now using unified toolbar */}
+
       {/* Refresh Indicator */}
       {(refreshing || refreshSuccess) && (
         <div className="refresh-indicator">
@@ -246,60 +275,30 @@ function App() {
         {urls.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">📭</div>
-            <h2>No URLs saved yet</h2>
-            <p>Send a URL to your Telegram bot to see it appear here!</p>
+            <h2>尚未儲存任何 URL</h2>
+            <p>發送 URL 到您的 Telegram 機器人，它就會出現在這裡！</p>
             <div className="empty-steps">
               <div className="step">
                 <span className="step-number">1</span>
-                <span>Open Telegram</span>
+                <span>開啟 Telegram</span>
               </div>
               <div className="step">
                 <span className="step-number">2</span>
-                <span>Find your bot</span>
+                <span>找到您的機器人</span>
               </div>
               <div className="step">
                 <span className="step-number">3</span>
-                <span>Send any URL</span>
+                <span>發送任何 URL</span>
               </div>
             </div>
           </div>
         ) : (
           <>
-            {/* Unified floating toolbar */}
-            <div className="floating-toolbar">
-              {/* Add URL button */}
-              <Link to="/add" className="toolbar-add-btn" title="Add new URL">
-                <span className="toolbar-add-icon">➕</span>
-              </Link>
-              
-              {/* Layout controls */}
-              <div className="toolbar-layout-controls">
-                {/* Current layout indicator (always visible) */}
-                <div className="toolbar-layout-indicator">
-                  <span className="toolbar-layout-icon">{currentLayoutConfig.icon}</span>
-                </div>
-                
-                {/* Layout options (visible on hover) */}
-                <div className="toolbar-layout-options">
-                  <div className="toolbar-layout-buttons">
-                    {(['compact', 'comfortable', 'spacious', 'list'] as LayoutMode[]).map((mode) => {
-                      const config = getLayoutConfig(mode);
-                      return (
-                        <button
-                          key={mode}
-                          className={`toolbar-layout-btn ${layoutMode === mode ? 'active' : ''}`}
-                          onClick={(event) => handleLayoutChange(mode, event)}
-                          title={`${config.name} - ${config.description}`}
-                        >
-                          <span className="toolbar-btn-icon">{config.icon}</span>
-                          <span className="toolbar-btn-name">{config.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
+            {/* Unified Toolbar */}
+            <UnifiedToolbar 
+              layoutMode={layoutMode} 
+              onLayoutChange={handleLayoutChange} 
+            />
             
             <div 
               className={`url-grid layout-${layoutMode}`}
@@ -325,8 +324,7 @@ function App() {
                       ) : null}
                       <div className="image-placeholder" style={{ display: urlData.image ? 'none' : 'flex' }}>
                         <span className="placeholder-icon">🔗</span>
-                        <span className="placeholder-text">No Preview</span>
-                        
+                        <span className="placeholder-text">沒有預覽</span>
                       </div>
                       
                       {/* Source badge */}
@@ -344,7 +342,7 @@ function App() {
                     
                     <div className="url-content">
                       <h3 className="url-title">
-                        {urlData.title || 'No title available'}
+                        {urlData.title || '沒有標題'}
                       </h3>
                       
                       {urlData.description && (
@@ -372,16 +370,16 @@ function App() {
                           className="url-link"
                         >
                           <span className="link-icon">🔗</span>
-                          <span className="link-text">Visit Link</span>
+                          <span className="link-text">訪問連結</span>
                         </a>
                         
                         <button 
                           onClick={() => copyToClipboard(urlData.url)}
                           className="share-btn"
-                          title="Copy URL to clipboard"
+                          title="複製 URL 到剪貼板"
                         >
                           <span className="share-icon">📋</span>
-                          <span className="share-text">Share</span>
+                          <span className="share-text">分享</span>
                         </button>
                       </div>
                       
@@ -404,6 +402,123 @@ function App() {
       </main>
     </div>
   )
+}
+
+// Authentication Wrapper Component
+function AuthenticatedApp() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Show login modal if not authenticated and not loading
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      setShowLoginModal(true);
+    } else {
+      setShowLoginModal(false);
+    }
+  }, [isAuthenticated, isLoading]);
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="app">
+        <div className="auth-loading">
+          <div className="loading-spinner"></div>
+          <p>正在載入 LinkKeeper...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login modal if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="app">
+        <div className="login-required">
+          <div className="login-content">
+            <h1 className="app-title">LinkKeeper</h1>
+            <p className="login-subtitle">您的個人 URL 管理工具</p>
+            <LoginModal 
+              isOpen={showLoginModal} 
+              onClose={() => setShowLoginModal(false)} 
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show main app content when authenticated
+  return (
+    <Routes>
+      <Route path="/" element={<AppContent />} />
+      <Route path="/add" element={<AddUrlPage />} />
+    </Routes>
+  );
+}
+
+// Main App Component with providers
+function App() {
+  const [googleClientId, setGoogleClientId] = useState<string | null>(null);
+  const [configError, setConfigError] = useState<string | null>(null);
+
+  // Get Google Client ID from server on app load
+  useEffect(() => {
+    const getAuthConfig = async () => {
+      try {
+        const response = await fetch('http://localhost:4000/api/auth/config');
+        const data = await response.json();
+        
+        if (data.success && data.config.googleClientId) {
+          setGoogleClientId(data.config.googleClientId);
+        } else {
+          setConfigError('無法取得認證設定');
+        }
+      } catch (error) {
+        console.error('Failed to get auth config:', error);
+        setConfigError('無法連接到伺服器');
+      }
+    };
+
+    getAuthConfig();
+  }, []);
+
+  // Show error if we can't get Google Client ID
+  if (configError) {
+    return (
+      <div className="app">
+        <div className="config-error">
+          <div className="error-icon">⚠️</div>
+          <h2>設定錯誤</h2>
+          <p>{configError}</p>
+          <button onClick={() => window.location.reload()} className="retry-btn">
+            <span>🔄</span>
+            重新載入
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading while getting Google Client ID
+  if (!googleClientId) {
+    return (
+      <div className="app">
+        <div className="config-loading">
+          <div className="loading-spinner"></div>
+          <p>正在初始化應用程式...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <AuthProvider>
+        <AuthenticatedApp />
+      </AuthProvider>
+    </GoogleOAuthProvider>
+  );
 }
 
 export default App

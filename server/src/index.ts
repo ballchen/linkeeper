@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { createUrlRoutes } from './infrastructure/web/routes/urlRoutes';
+import { createAuthRoutes } from './infrastructure/web/routes/authRoutes';
 import { DependencyContainer } from './infrastructure/config/DependencyContainer';
 import { startBot } from './bot/telegramBot';
 import logger from './utils/logger';
@@ -30,6 +31,7 @@ const container = DependencyContainer.getInstance();
 
 // Routes
 app.use('/api/urls', createUrlRoutes(container.urlController));
+app.use('/api/auth', createAuthRoutes(container.authController));
 
 // Health check endpoint
 app.get('/health', (req, res) => {

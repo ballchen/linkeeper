@@ -2068,3 +2068,105 @@ body {
     --text-muted: #000000;
   }
 }
+
+/* ===== AUTHENTICATION STYLES ===== */
+
+/* Removed App Header - now using unified floating toolbar */
+
+/* Page header styles removed - no longer using fixed headers */
+
+/* Authentication Loading States */
+.auth-loading,
+.config-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: var(--spacing-lg);
+  text-align: center;
+}
+
+.auth-loading p,
+.config-loading p {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* Login Required State */
+.login-required {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  text-align: center;
+  padding: var(--spacing-xl);
+}
+
+.login-content {
+  max-width: 500px;
+  width: 100%;
+}
+
+.login-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  margin: var(--spacing-md) 0 var(--spacing-xl);
+  font-weight: 300;
+}
+
+/* Config Error State */
+.config-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  text-align: center;
+  padding: var(--spacing-xl);
+  gap: var(--spacing-lg);
+}
+
+.config-error .error-icon {
+  font-size: 4rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.config-error h2 {
+  color: var(--error-color);
+  margin: 0 0 var(--spacing-md);
+  font-size: 1.8rem;
+}
+
+.config-error p {
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-lg);
+  font-size: 1.1rem;
+}
+
+/* Main content - no top margin needed since no fixed header */
+.main {
+  margin-top: 0;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+}
+
+/* AddUrlPage - no top padding needed since no fixed header */
+
+/* Responsive adjustments - page header styles removed */
+
+@media (max-width: 480px) {
+  .login-required {
+    padding: var(--spacing-lg);
+  }
+
+  .login-subtitle {
+    font-size: 1.1rem;
+  }
+}

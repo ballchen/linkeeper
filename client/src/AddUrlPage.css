@@ -164,8 +164,10 @@
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   font-weight: 600;
+  line-height: 1; /* Ensure consistent line height */
 }
 
 .submit-btn:hover:not(:disabled) {
@@ -179,13 +181,43 @@
   transform: none;
 }
 
-.loading-spinner {
+/* Loading spinner for submit button */
+.submit-btn .loading-spinner {
   width: 16px;
   height: 16px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-top: 2px solid white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  flex-shrink: 0; /* Prevent shrinking */
+  margin: 0; /* Remove any default margins */
+}
+
+/* Auth loading container */
+.auth-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* Loading spinner for auth state */
+.auth-loading .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(102, 126, 234, 0.3);
+  border-top: 3px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+.auth-loading p {
+  color: #666;
+  font-size: 1rem;
+  margin: 0;
 }
 
 @keyframes spin {
@@ -261,5 +293,10 @@
   .submit-btn {
     width: 100%;
     justify-content: center;
+  }
+  
+  /* Ensure auth loading is properly centered on mobile */
+  .auth-loading {
+    padding: 1.5rem;
   }
 } 

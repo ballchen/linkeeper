@@ -1,0 +1,319 @@
+/* Unified Floating Toolbar */
+.unified-toolbar {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1000;
+}
+
+/* Main Trigger Button - Simplified */
+.toolbar-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  user-select: none;
+}
+
+.toolbar-trigger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 1);
+}
+
+.toolbar-trigger.open {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Trigger Avatar - Now the only element */
+.trigger-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  background: #f0f0f0;
+}
+
+.trigger-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #667eea;
+  font-weight: 600;
+  font-size: 14px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+/* Dropdown Menu - Compact */
+.toolbar-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 240px;
+  max-width: calc(100vw - 24px);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  animation: dropdownSlideIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .toolbar-dropdown {
+    background: #1a1a1a;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+}
+
+/* Dropdown Sections - Compact */
+.dropdown-section {
+  padding: 8px 12px;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 0 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .toolbar-dropdown {
+    background: #1a1a1a;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+  
+  .dropdown-divider {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Compact User Section */
+.user-section-compact {
+  text-align: center;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.user-name-compact {
+  font-weight: 600;
+  font-size: 14px;
+  color: #2d3748;
+  margin-bottom: 2px;
+}
+
+.user-email-compact {
+  font-size: 12px;
+  color: #718096;
+}
+
+/* Compact Actions */
+.dropdown-action-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: inherit;
+  text-decoration: none;
+  width: 100%;
+  font-size: 14px;
+}
+
+.dropdown-action-compact:hover {
+  background: rgba(102, 126, 234, 0.08);
+}
+
+.dropdown-action-compact.logout-compact:hover {
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+}
+
+.action-icon-compact {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.action-text-compact {
+  font-weight: 500;
+}
+
+/* Layout Title */
+.layout-title-compact {
+  font-size: 12px;
+  font-weight: 600;
+  color: #718096;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Layout Options Grid */
+.layout-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.layout-option-compact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  background: none;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 11px;
+}
+
+.layout-option-compact:hover {
+  background: rgba(102, 126, 234, 0.08);
+  border-color: rgba(102, 126, 234, 0.2);
+}
+
+.layout-option-compact.active {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+  border-color: rgba(102, 126, 234, 0.3);
+  color: #667eea;
+}
+
+.layout-icon-compact {
+  font-size: 16px;
+  color: #667eea;
+}
+
+.layout-name-compact {
+  font-weight: 500;
+  color: #4a5568;
+}
+
+@media (prefers-color-scheme: dark) {
+  .user-section-compact {
+    background: linear-gradient(135deg, #2d2d2d 0%, #1f1f1f 100%);
+  }
+  
+  .user-name-compact {
+    color: #f7fafc;
+  }
+  
+  .user-email-compact {
+    color: #cbd5e0;
+  }
+  
+  .dropdown-action-compact:hover {
+    background: rgba(102, 126, 234, 0.15);
+  }
+  
+  .dropdown-action-compact.logout-compact:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f56565;
+  }
+  
+  .layout-title-compact {
+    color: #e2e8f0;
+  }
+  
+  .layout-option-compact {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .layout-option-compact:hover {
+    background: rgba(102, 126, 234, 0.15);
+    border-color: rgba(102, 126, 234, 0.3);
+  }
+  
+  .layout-option-compact.active {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+    border-color: rgba(102, 126, 234, 0.4);
+  }
+  
+  .layout-name-compact {
+    color: #f7fafc;
+  }
+}
+
+/* Old styles removed - using compact versions */
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .unified-toolbar {
+    top: 16px;
+    right: 16px;
+  }
+  
+  .toolbar-trigger {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .trigger-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .toolbar-dropdown {
+    width: 220px;
+    max-width: calc(100vw - 32px);
+  }
+  
+  .dropdown-section {
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .toolbar-dropdown {
+    width: 200px;
+  }
+  
+  .layout-options-grid {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  
+  .layout-option-compact {
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 6px 8px;
+  }
+} 
