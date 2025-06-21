@@ -63,7 +63,7 @@ bot.on('text', async (ctx) => {
         { url }, 
         {
           headers: {
-            'Authorization': `Bearer ${internalApiKey}`,
+            'Authorization': `x-api-key ${internalApiKey}`,
             'Content-Type': 'application/json'
           }
         }
