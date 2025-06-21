@@ -9,6 +9,9 @@ export function createUrlRoutes(urlController: UrlController): express.Router {
   router.post('/', validateApiKey, (req, res) => urlController.addUrl(req, res));
   
   // Public route - accessible without authentication (for frontend)
+  router.post('/add', (req, res) => urlController.addUrlPublic(req, res));
+  
+  // Public route - accessible without authentication (for frontend)
   router.get('/', (req, res) => urlController.getUrls(req, res));
 
   return router;

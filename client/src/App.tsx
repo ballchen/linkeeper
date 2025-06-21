@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useLocation, Link } from 'react-router-dom'
 import axios from 'axios'
 import './App.css'
+
+// Import SVG icons
+import FacebookIcon from './assets/icons/facebook.svg'
+import InstagramIcon from './assets/icons/instagram.svg'
+import ThreadsIcon from './assets/icons/threads.svg'
+import YouTubeIcon from './assets/icons/youtube.svg'
 
 type UrlSource = 'facebook' | 'instagram' | 'threads' | 'youtube';
 type LayoutMode = 'compact' | 'comfortable' | 'spacious' | 'list';
@@ -31,6 +38,7 @@ function App() {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('comfortable');
 
+  const location = useLocation();
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
   // Load layout preference from localStorage
@@ -83,10 +91,10 @@ function App() {
   // Get source icon and display name
   const getSourceInfo = (source?: UrlSource) => {
     const sourceMap = {
-      facebook: { icon: '📘', name: 'Facebook', color: '#1877F2' },
-      instagram: { icon: '📷', name: 'Instagram', color: '#E4405F' },
-      threads: { icon: '🧵', name: 'Threads', color: '#000000' },
-      youtube: { icon: '📹', name: 'YouTube', color: '#FF0000' }
+      facebook: { icon: FacebookIcon, name: 'Facebook', color: '#1877F2' },
+      instagram: { icon: InstagramIcon, name: 'Instagram', color: '#E4405F' },
+      threads: { icon: ThreadsIcon, name: 'Threads', color: '#000000' },
+      youtube: { icon: YouTubeIcon, name: 'YouTube', color: '#FF0000' }
     };
     return source ? sourceMap[source] : null;
   };
@@ -157,6 +165,15 @@ function App() {
     const interval = setInterval(() => fetchUrls(true), 30000);
     return () => clearInterval(interval);
   }, [fetchUrls]);
+
+  // Handle navigation state message
+  useEffect(() => {
+    if (location.state?.message) {
+      showToast(location.state.message, location.state.type || 'success');
+      // Clear the state to prevent showing the message again on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, showToast]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -248,29 +265,38 @@ function App() {
           </div>
         ) : (
           <>
-            <div className="floating-layout-controls">
-              {/* Current layout indicator (always visible) */}
-              <div className="current-layout-indicator">
-                <span className="current-layout-icon">{currentLayoutConfig.icon}</span>
-              </div>
+            {/* Unified floating toolbar */}
+            <div className="floating-toolbar">
+              {/* Add URL button */}
+              <Link to="/add" className="toolbar-add-btn" title="Add new URL">
+                <span className="toolbar-add-icon">➕</span>
+              </Link>
               
-              {/* Layout options (visible on hover) */}
-              <div className="layout-options">
-                <div className="layout-buttons">
-                  {(['compact', 'comfortable', 'spacious', 'list'] as LayoutMode[]).map((mode) => {
-                    const config = getLayoutConfig(mode);
-                    return (
-                      <button
-                        key={mode}
-                        className={`layout-btn ${layoutMode === mode ? 'active' : ''}`}
-                        onClick={(event) => handleLayoutChange(mode, event)}
-                        title={`${config.name} - ${config.description}`}
-                      >
-                        <span className="layout-icon">{config.icon}</span>
-                        <span className="layout-name">{config.name}</span>
-                      </button>
-                    );
-                  })}
+              {/* Layout controls */}
+              <div className="toolbar-layout-controls">
+                {/* Current layout indicator (always visible) */}
+                <div className="toolbar-layout-indicator">
+                  <span className="toolbar-layout-icon">{currentLayoutConfig.icon}</span>
+                </div>
+                
+                {/* Layout options (visible on hover) */}
+                <div className="toolbar-layout-options">
+                  <div className="toolbar-layout-buttons">
+                    {(['compact', 'comfortable', 'spacious', 'list'] as LayoutMode[]).map((mode) => {
+                      const config = getLayoutConfig(mode);
+                      return (
+                        <button
+                          key={mode}
+                          className={`toolbar-layout-btn ${layoutMode === mode ? 'active' : ''}`}
+                          onClick={(event) => handleLayoutChange(mode, event)}
+                          title={`${config.name} - ${config.description}`}
+                        >
+                          <span className="toolbar-btn-icon">{config.icon}</span>
+                          <span className="toolbar-btn-name">{config.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
@@ -308,12 +334,17 @@ function App() {
                       <div className="image-placeholder" style={{ display: urlData.image ? 'none' : 'flex' }}>
                         <span className="placeholder-icon">🔗</span>
                         <span className="placeholder-text">No Preview</span>
+                        
                       </div>
                       
                       {/* Source badge */}
                       {sourceInfo && (
                         <div className="source-badge" style={{ backgroundColor: sourceInfo.color }}>
-                          <span className="source-icon">{sourceInfo.icon}</span>
+                          <img 
+                            src={sourceInfo.icon} 
+                            alt={sourceInfo.name} 
+                            className="source-icon"
+                          />
                           <span className="source-name">{sourceInfo.name}</span>
                         </div>
                       )}

@@ -469,14 +469,248 @@ body {
 }
 
 /* ===== FLOATING LAYOUT CONTROLS ===== */
-.floating-layout-controls {
+/* ===== UNIFIED FLOATING TOOLBAR ===== */
+.floating-toolbar {
   position: fixed;
   top: var(--spacing-lg);
-  left: var(--spacing-lg);
+  right: var(--spacing-lg);
   z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+/* Add URL Button */
+.toolbar-add-btn {
+  width: 52px;
+  height: 52px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+}
+
+.toolbar-add-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.toolbar-add-btn:hover {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow: var(--shadow-xl);
+}
+
+.toolbar-add-btn:hover::before {
+  opacity: 1;
+}
+
+.toolbar-add-btn:active {
+  transform: scale(1.02) translateY(-1px);
+}
+
+.toolbar-add-icon {
+  font-size: 1.4rem;
+  color: white;
+  font-weight: bold;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+  position: relative;
+}
+
+/* Layout Controls Container */
+.toolbar-layout-controls {
+  position: relative;
   transition: all var(--transition-normal);
 }
 
+.toolbar-layout-indicator {
+  width: 44px;
+  height: 44px;
+  background: var(--bg-card);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  backdrop-filter: blur(20px);
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+}
+
+.toolbar-layout-indicator::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.toolbar-layout-indicator:hover {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.toolbar-layout-indicator:hover::before {
+  opacity: 1;
+}
+
+.toolbar-layout-icon {
+  font-size: 1.2rem;
+  color: var(--primary-color);
+  transition: transform var(--transition-fast);
+  font-weight: 600;
+  z-index: 1;
+  position: relative;
+}
+
+.toolbar-layout-controls:hover .toolbar-layout-icon {
+  transform: scale(1.1);
+  color: var(--primary-dark);
+}
+
+/* Layout Options (Hidden by default) */
+.toolbar-layout-options {
+  position: absolute;
+  top: 0;
+  right: 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(20px) scale(0.9);
+  transform-origin: right center;
+  transition: all var(--transition-normal);
+  pointer-events: none;
+}
+
+.toolbar-layout-controls:hover .toolbar-layout-options,
+.toolbar-layout-controls:focus-within .toolbar-layout-options {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0) scale(1);
+  pointer-events: all;
+}
+
+.toolbar-layout-controls:hover .toolbar-layout-indicator,
+.toolbar-layout-controls:focus-within .toolbar-layout-indicator {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.toolbar-layout-buttons {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-sm);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: var(--spacing-xs);
+  backdrop-filter: blur(20px);
+  min-width: 140px;
+  position: relative;
+  overflow: hidden;
+}
+
+.toolbar-layout-buttons::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+}
+
+.toolbar-layout-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.toolbar-layout-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left var(--transition-normal);
+}
+
+.toolbar-layout-btn:hover::before {
+  left: 100%;
+}
+
+.toolbar-layout-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transform: translateX(2px) scale(1.02);
+  box-shadow: var(--shadow-sm);
+}
+
+.toolbar-layout-btn.active {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  box-shadow: var(--shadow-md);
+  font-weight: 700;
+}
+
+.toolbar-layout-btn.active::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: calc(var(--radius-md) - 1px);
+  background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1));
+  pointer-events: none;
+}
+
+.toolbar-btn-icon {
+  font-size: 1rem;
+  transition: transform var(--transition-fast);
+}
+
+.toolbar-layout-btn:hover .toolbar-btn-icon {
+  transform: scale(1.1);
+}
+
+  .toolbar-btn-name {
+    font-size: 0.8rem;
+    letter-spacing: 0.025em;
+  }
+
+/* Legacy styles - will be removed/updated */
 .current-layout-indicator {
   width: 48px;
   height: 48px;
@@ -532,31 +766,32 @@ body {
 
 /* Touch device support */
 @media (hover: none) and (pointer: coarse) {
-  .floating-layout-controls .current-layout-indicator {
+  .toolbar-layout-indicator {
     position: relative;
   }
   
-  .floating-layout-controls .current-layout-indicator::after {
+  .toolbar-layout-indicator::after {
     content: '';
     position: absolute;
-    top: -10px;
-    left: -10px;
-    right: -10px;
-    bottom: -10px;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
   }
   
-  .floating-layout-controls:active .layout-options {
+  .toolbar-layout-controls:active .toolbar-layout-options {
     opacity: 1;
     visibility: visible;
-    transform: translateX(0) scaleX(1);
+    transform: translateX(0) scale(1);
     pointer-events: all;
   }
   
-  .floating-layout-controls:active .current-layout-indicator {
+  .toolbar-layout-controls:active .toolbar-layout-indicator {
     opacity: 0;
+    transform: scale(0.9);
   }
   
-  .floating-layout-controls:active .layout-name {
+  .toolbar-layout-controls:active .toolbar-btn-name {
     opacity: 1;
     transform: translateX(0);
   }
@@ -855,6 +1090,8 @@ body {
   transition: transform var(--transition-slow);
 }
 
+/* Remove duplicate definition - will be handled in main .source-icon rule */
+
 .url-card:hover .url-image img {
   transform: scale(1.1);
 }
@@ -1003,7 +1240,13 @@ body {
 }
 
 .source-icon {
-  font-size: 0.9em;
+  width: 16px !important;
+  height: 16px !important;
+  filter: brightness(0) invert(1); /* Make SVG icons white */
+  flex-shrink: 0;
+  object-fit: contain !important;
+  /* Prevent .url-image img styles from affecting this element */
+  transform: none !important;
 }
 
 .source-name {
@@ -1175,10 +1418,46 @@ body {
     font-size: 1rem;
   }
 
-  /* Floating layout controls responsive */
-  .floating-layout-controls {
+  /* Unified toolbar responsive */
+  .floating-toolbar {
     top: var(--spacing-sm);
-    left: var(--spacing-sm);
+    right: var(--spacing-sm);
+    gap: var(--spacing-xs);
+  }
+  
+  .toolbar-add-btn {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .toolbar-add-icon {
+    font-size: 1.2rem;
+  }
+  
+  .toolbar-layout-indicator {
+    width: 38px;
+    height: 38px;
+  }
+  
+  .toolbar-layout-indicator:hover {
+    transform: scale(1.05) translateY(-1px);
+  }
+  
+  .toolbar-layout-icon {
+    font-size: 1rem;
+  }
+  
+  .toolbar-layout-buttons {
+    min-width: 120px;
+  }
+  
+  .toolbar-layout-btn {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.8rem;
+  }
+  
+  .toolbar-btn-name {
+    font-size: 0.75rem;
   }
 
   .current-layout-indicator {
@@ -1301,6 +1580,11 @@ body {
     padding: 2px var(--spacing-xs);
     font-size: 0.7rem;
   }
+  
+  .url-card.layout-compact .source-icon {
+    width: 12px;
+    height: 12px;
+  }
 
   /* Force vertical layout on mobile for list mode */
   .url-card.layout-list {
@@ -1398,9 +1682,49 @@ body {
     gap: var(--spacing-sm);
   }
 
-  .floating-layout-controls {
+  .floating-toolbar {
     top: var(--spacing-xs);
-    left: var(--spacing-xs);
+    right: var(--spacing-xs);
+    gap: 4px;
+  }
+  
+  .toolbar-add-btn {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .toolbar-add-icon {
+    font-size: 1.1rem;
+  }
+  
+  .toolbar-layout-indicator {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .toolbar-layout-indicator:hover {
+    transform: scale(1.03) translateY(-1px);
+  }
+  
+  .toolbar-layout-icon {
+    font-size: 0.9rem;
+  }
+  
+  .toolbar-layout-buttons {
+    min-width: 100px;
+  }
+  
+  .toolbar-layout-btn {
+    padding: 6px var(--spacing-sm);
+    font-size: 0.75rem;
+  }
+  
+  .toolbar-btn-name {
+    display: none;
+  }
+  
+  .toolbar-btn-icon {
+    font-size: 0.9rem;
   }
 
   .current-layout-indicator {
@@ -1528,6 +1852,11 @@ body {
     right: 4px;
     padding: 1px 4px;
     font-size: 0.6rem;
+  }
+  
+  .url-card.layout-compact .source-icon {
+    width: 10px;
+    height: 10px;
   }
 
   .url-card.layout-compact .url-image {
