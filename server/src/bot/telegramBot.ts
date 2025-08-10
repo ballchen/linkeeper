@@ -8,6 +8,7 @@ dotenv.config();
 // Check if required environment variables are set
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const internalApiKey = process.env.INTERNAL_API_KEY;
+const allowedUsers = process.env.TELEGRAM_ALLOWED_USERS;
 
 if (!botToken) {
   logger.error('TELEGRAM_BOT_TOKEN must be provided in environment variables');
@@ -19,14 +20,50 @@ if (!internalApiKey) {
   throw new Error('INTERNAL_API_KEY must be provided in environment variables');
 }
 
+if (!allowedUsers) {
+  logger.error('TELEGRAM_ALLOWED_USERS must be provided in environment variables');
+  throw new Error('TELEGRAM_ALLOWED_USERS must be provided in environment variables');
+}
+
 // Create bot instance
 const bot = new Telegraf(botToken);
 
 // URL validation regex
 const urlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
+// Parse allowed users list
+const allowedUsersList = allowedUsers.split(',').map(user => user.trim()).filter(user => user.length > 0);
+
+// User authorization helper
+const isAuthorizedUser = (ctx: Context): boolean => {
+  const userId = ctx.from?.id;
+  const username = ctx.from?.username;
+  
+  if (!userId) return false;
+  
+  return allowedUsersList.some(allowedUser => {
+    if (allowedUser.startsWith('@')) {
+      return username && `@${username}` === allowedUser;
+    } else {
+      return userId.toString() === allowedUser;
+    }
+  });
+};
+
+const handleUnauthorizedUser = (ctx: Context) => {
+  const userId = ctx.from?.id;
+  const username = ctx.from?.username || 'Unknown';
+  logger.warn(`Unauthorized access attempt from user: ${username} (ID: ${userId})`);
+  ctx.reply('🚫 Sorry, you are not authorized to use this bot. Please contact the administrator for access.');
+};
+
 // Start handler
 bot.start((ctx) => {
+  if (!isAuthorizedUser(ctx)) {
+    handleUnauthorizedUser(ctx);
+    return;
+  }
+  
   const userId = ctx.from?.id;
   const username = ctx.from?.username || 'Unknown';
   logger.info(`Bot started by user: ${username} (ID: ${userId})`);
@@ -35,6 +72,11 @@ bot.start((ctx) => {
 
 // Help handler
 bot.help((ctx) => {
+  if (!isAuthorizedUser(ctx)) {
+    handleUnauthorizedUser(ctx);
+    return;
+  }
+  
   const userId = ctx.from?.id;
   const username = ctx.from?.username || 'Unknown';
   logger.info(`Help requested by user: ${username} (ID: ${userId})`);
@@ -43,9 +85,19 @@ bot.help((ctx) => {
 
 // URL handler
 bot.on('text', async (ctx) => {
+  if (!isAuthorizedUser(ctx)) {
+    handleUnauthorizedUser(ctx);
+    return;
+  }
+  
   const text = ctx.message.text;
   const userId = ctx.from?.id;
   const username = ctx.from?.username || 'Unknown';
+
+  if (ctx.from?.is_bot) {
+    logger.debug(`Bot message from ${username}: ${text}`);
+    return;
+  }
   
   logger.debug(`Message received from ${username} (ID: ${userId}): ${text}`);
   
