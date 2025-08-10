@@ -148,6 +148,19 @@ class ApiService {
   }
 
   /**
+   * Delete URL (soft delete)
+   */
+  async deleteUrl(id: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response: AxiosResponse<{ success: boolean; message: string }> = await this.client.delete(`${API_ENDPOINTS.URLS}/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to delete URL:', error);
+      throw this.handleError(error);
+    }
+  }
+
+  /**
    * Health check
    */
   async healthCheck(): Promise<{ status: string; timestamp: string; uptime: number }> {

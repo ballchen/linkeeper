@@ -26,5 +26,6 @@ export interface UrlRepository {
   findWithPagination(params: UrlQueryParams): Promise<PaginatedResult<Url>>;
   findById(id: string): Promise<Url | null>;
   delete(id: string): Promise<void>;
+  softDelete(id: string): Promise<void>;
   update(url: Url): Promise<Url>;
 } 

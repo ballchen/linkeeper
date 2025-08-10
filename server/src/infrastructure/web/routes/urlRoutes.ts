@@ -15,5 +15,8 @@ export function createUrlRoutes(urlController: UrlController): express.Router {
   // Protected route - accessible with API key (Telegram bot) or JWT (frontend)
   router.get('/', dualAuth, (req, res) => urlController.getUrls(req, res));
 
+  // Protected route - soft delete URL
+  router.delete('/:id', dualAuth, (req, res) => urlController.deleteUrl(req, res));
+
   return router;
 } 

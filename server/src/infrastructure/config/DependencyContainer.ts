@@ -4,6 +4,7 @@ import { MetadataService } from '../../domain/services/MetadataService';
 import { UrlAnalysisService } from '../../domain/services/UrlAnalysisService';
 import { AddUrlUseCase } from '../../application/use-cases/AddUrlUseCase';
 import { GetUrlsUseCase } from '../../application/use-cases/GetUrlsUseCase';
+import { DeleteUrlUseCase } from '../../application/use-cases/DeleteUrlUseCase';
 import { AuthUseCase } from '../../application/use-cases/AuthUseCase';
 import { MongoUrlRepository } from '../database/MongoUrlRepository';
 import { MongoUserRepository } from '../database/MongoUserRepository';
@@ -25,6 +26,7 @@ export class DependencyContainer {
   private _urlAnalysisService: UrlAnalysisService;
   private _addUrlUseCase: AddUrlUseCase;
   private _getUrlsUseCase: GetUrlsUseCase;
+  private _deleteUrlUseCase: DeleteUrlUseCase;
   private _authUseCase: AuthUseCase;
   private _urlController: UrlController;
   private _authController: AuthController;
@@ -45,12 +47,14 @@ export class DependencyContainer {
       this._urlAnalysisService
     );
     this._getUrlsUseCase = new GetUrlsUseCase(this._urlRepository);
+    this._deleteUrlUseCase = new DeleteUrlUseCase(this._urlRepository);
     this._authUseCase = new AuthUseCase(this._userRepository);
 
     // Interface adapters layer  
     this._urlController = new UrlController(
       this._addUrlUseCase,
       this._getUrlsUseCase,
+      this._deleteUrlUseCase,
       this._s3ImageService
     );
     this._authController = new AuthController(this._authUseCase);
@@ -85,6 +89,10 @@ export class DependencyContainer {
 
   get getUrlsUseCase(): GetUrlsUseCase {
     return this._getUrlsUseCase;
+  }
+
+  get deleteUrlUseCase(): DeleteUrlUseCase {
+    return this._deleteUrlUseCase;
   }
 
   get s3ImageService(): S3ImageService {

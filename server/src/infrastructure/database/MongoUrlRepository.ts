@@ -12,6 +12,7 @@ interface UrlDocument extends Document {
   source?: UrlSource;
   tags?: string[];
   createdAt: Date;
+  deletedAt?: Date;
 }
 
 const UrlSchema: Schema = new Schema({
@@ -25,7 +26,8 @@ const UrlSchema: Schema = new Schema({
     required: false 
   },
   tags: [{ type: String }],
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  deletedAt: { type: Date, default: null }
 });
 
 const UrlModel = mongoose.model<UrlDocument>('Url', UrlSchema);
@@ -47,12 +49,12 @@ export class MongoUrlRepository implements UrlRepository {
   }
 
   async findByUrl(url: string): Promise<Url | null> {
-    const urlDoc = await UrlModel.findOne({ url });
+    const urlDoc = await UrlModel.findOne({ url, deletedAt: null });
     return urlDoc ? this.mapToEntity(urlDoc) : null;
   }
 
   async findAll(): Promise<Url[]> {
-    const urlDocs = await UrlModel.find().sort({ createdAt: -1 });
+    const urlDocs = await UrlModel.find({ deletedAt: null }).sort({ createdAt: -1 });
     return urlDocs.map(doc => this.mapToEntity(doc));
   }
 
@@ -68,7 +70,7 @@ export class MongoUrlRepository implements UrlRepository {
     } = params;
 
     // Build query
-    const query: any = {};
+    const query: any = { deletedAt: null };
 
     // Cursor-based pagination using _id
     if (cursor) {
@@ -135,12 +137,18 @@ export class MongoUrlRepository implements UrlRepository {
   }
 
   async findById(id: string): Promise<Url | null> {
-    const urlDoc = await UrlModel.findById(id);
+    const urlDoc = await UrlModel.findOne({ _id: id, deletedAt: null });
     return urlDoc ? this.mapToEntity(urlDoc) : null;
   }
 
   async delete(id: string): Promise<void> {
     await UrlModel.findByIdAndDelete(id);
+  }
+
+  async softDelete(id: string): Promise<void> {
+    await UrlModel.findByIdAndUpdate(id, {
+      deletedAt: new Date()
+    });
   }
 
   async update(url: Url): Promise<Url> {

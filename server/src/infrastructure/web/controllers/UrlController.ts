@@ -1,12 +1,14 @@
 import { Request, Response } from 'express';
 import { AddUrlUseCase } from '../../../application/use-cases/AddUrlUseCase';
 import { GetUrlsUseCase } from '../../../application/use-cases/GetUrlsUseCase';
+import { DeleteUrlUseCase } from '../../../application/use-cases/DeleteUrlUseCase';
 import { S3ImageService } from '../../services/S3ImageService';
 
 export class UrlController {
   constructor(
     private readonly addUrlUseCase: AddUrlUseCase,
     private readonly getUrlsUseCase: GetUrlsUseCase,
+    private readonly deleteUrlUseCase: DeleteUrlUseCase,
     private readonly s3ImageService: S3ImageService
   ) {}
 
@@ -248,5 +250,38 @@ export class UrlController {
     }
   }
 
+  async deleteUrl(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      if (!id) {
+        res.status(400).json({
+          error: 'URL ID is required',
+          message: 'Please provide a valid URL ID'
+        });
+        return;
+      }
+
+      await this.deleteUrlUseCase.execute(id);
+
+      res.status(200).json({
+        success: true,
+        message: 'URL deleted successfully'
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('not found')) {
+        res.status(404).json({
+          error: 'URL not found',
+          message: error.message
+        });
+        return;
+      }
+
+      res.status(500).json({
+        error: 'Internal server error',
+        message: 'An unexpected error occurred while deleting the URL'
+      });
+    }
+  }
 
 } 

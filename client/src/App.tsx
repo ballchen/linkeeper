@@ -5,6 +5,8 @@ import InfiniteScroll from 'react-infinite-scroll-component'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { LoginModal } from './components/LoginModal'
 import { UnifiedToolbar } from './components/UnifiedToolbar'
+import { DeleteConfirmModal } from './components/DeleteConfirmModal'
+import { useLongPress } from './hooks/useLongPress'
 import { apiService } from './services/apiService'
 import type { UrlData } from './services/apiService'
 import { API_CONFIG, API_ENDPOINTS } from './config/api'
@@ -35,6 +37,9 @@ function AppContent() {
   const [nextCursor, setNextCursor] = useState<string | undefined>();
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('comfortable');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [urlToDelete, setUrlToDelete] = useState<UrlData | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const processedStateRef = useRef<string | null>(null);
 
   const location = useLocation();
@@ -184,6 +189,42 @@ function AppContent() {
       throw err; // Re-throw for InfiniteScroll error handling
     }
   }, [hasMore, nextCursor]);
+
+  // Handle URL deletion
+  const handleDeleteUrl = useCallback(async () => {
+    if (!urlToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await apiService.deleteUrl(urlToDelete._id);
+      
+      // Remove URL from state
+      setUrls(prevUrls => prevUrls.filter(url => url._id !== urlToDelete._id));
+      
+      // Show success toast
+      showToast('連結已刪除 🗑️', 'success');
+      
+      // Close modal
+      setDeleteModalOpen(false);
+      setUrlToDelete(null);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '刪除失敗';
+      showToast(`刪除失敗: ${errorMessage}`, 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [urlToDelete, showToast]);
+
+  // Handle long press on URL card
+  const handleLongPress = useCallback((urlData: UrlData) => {
+    setUrlToDelete(urlData);
+    setDeleteModalOpen(true);
+    
+    // Add haptic feedback if available
+    if (navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+  }, []);
 
   useEffect(() => {
     fetchInitialUrls();
@@ -335,12 +376,21 @@ function AppContent() {
               >
                 {urls.map((urlData, index) => {
                   const sourceInfo = getSourceInfo(urlData.source);
-                  return (
-                    <div 
-                      key={urlData._id} 
-                      className={`url-card layout-${layoutMode}`}
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                    >
+                  
+                  // Create UrlCard component with long press
+                  const UrlCard = () => {
+                    const longPressHandlers = useLongPress({
+                      onLongPress: () => handleLongPress(urlData),
+                      delay: 800
+                    });
+                    
+                    return (
+                      <div 
+                        key={urlData._id} 
+                        className={`url-card layout-${layoutMode}`}
+                        style={{ animationDelay: `${index * 0.1}s` }}
+                        {...longPressHandlers}
+                      >
                       <div className="url-image">
                         {urlData.image ? (
                           <img 
@@ -420,14 +470,29 @@ function AppContent() {
                           </span>
                         </div>
                       </div>
-                    </div>
-                  );
+                      </div>
+                    );
+                  };
+
+                  return <UrlCard key={urlData._id} />;
                 })}
               </div>
             </InfiniteScroll>
           </>
         )}
       </main>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setUrlToDelete(null);
+        }}
+        onConfirm={handleDeleteUrl}
+        urlTitle={urlToDelete?.title || urlToDelete?.url}
+        isLoading={isDeleting}
+      />
     </div>
   )
 }
