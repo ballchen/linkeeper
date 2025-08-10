@@ -21,7 +21,7 @@ export const useLongPress = ({
   delay = 800,
   shouldPreventDefault = true
 }: UseLongPressOptions): UseLongPressReturn => {
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLongPressRef = useRef<boolean>(false);
 
   const start = useCallback((event: React.MouseEvent | React.TouchEvent) => {
@@ -37,7 +37,7 @@ export const useLongPress = ({
     }, delay);
   }, [onLongPress, delay, shouldPreventDefault]);
 
-  const clear = useCallback((event: React.MouseEvent | React.TouchEvent, shouldTriggerClick = true) => {
+  const clear = useCallback((_: React.MouseEvent | React.TouchEvent, shouldTriggerClick = true) => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
