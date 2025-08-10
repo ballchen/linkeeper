@@ -50,7 +50,7 @@ const UrlCard = memo<UrlCardProps>(({
   const longPressHandlers = useLongPress({
     onLongPress: () => onLongPress(urlData),
     delay: 700,
-    shouldPreventDefault: true
+    shouldPreventDefault: false
   });
 
   return (
@@ -120,7 +120,11 @@ const UrlCard = memo<UrlCardProps>(({
           </a>
           
           <button 
-            onClick={() => onCopy(urlData.url)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onCopy(urlData.url);
+            }}
             className="share-btn"
             title="複製 URL 到剪貼板"
           >
@@ -258,7 +262,7 @@ function AppContent() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
   // Fetch more URLs for infinite scroll
   const fetchMoreUrls = useCallback(async () => {
