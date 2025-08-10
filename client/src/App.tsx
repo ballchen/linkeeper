@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, memo } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import InfiniteScroll from 'react-infinite-scroll-component'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { ToastProvider, useToast } from './contexts/ToastContext'
 import { LoginModal } from './components/LoginModal'
 import { UnifiedToolbar } from './components/UnifiedToolbar'
 import { DeleteConfirmModal } from './components/DeleteConfirmModal'
@@ -22,11 +23,125 @@ import YouTubeIcon from './assets/icons/youtube.svg'
 type UrlSource = 'facebook' | 'instagram' | 'threads' | 'youtube';
 type LayoutMode = 'compact' | 'comfortable' | 'spacious' | 'list';
 
-interface ToastMessage {
-  id: string;
-  message: string;
-  type: 'success' | 'error';
+// Memoized UrlCard component to prevent unnecessary re-renders
+interface UrlCardProps {
+  urlData: UrlData;
+  index: number;
+  layoutMode: LayoutMode;
+  sourceInfo: {
+    icon: string;
+    name: string;
+    color: string;
+  } | null;
+  onLongPress: (urlData: UrlData) => void;
+  onCopy: (url: string) => void;
+  formatDate: (dateString: string) => string;
 }
+
+const UrlCard = memo<UrlCardProps>(({ 
+  urlData, 
+  index, 
+  layoutMode, 
+  sourceInfo, 
+  onLongPress, 
+  onCopy, 
+  formatDate 
+}) => {
+  const longPressHandlers = useLongPress({
+    onLongPress: () => onLongPress(urlData),
+    delay: 700,
+    shouldPreventDefault: true
+  });
+
+  return (
+    <div 
+      key={urlData._id} 
+      className={`url-card layout-${layoutMode}`}
+      style={{ animationDelay: `${index * 0.1}s` }}
+      {...longPressHandlers}
+    >
+      <div className="url-image">
+        {urlData.image ? (
+          <img 
+            src={urlData.image} 
+            alt={urlData.title || 'URL preview'} 
+            loading="lazy"
+          />
+        ) : null}
+        <div className="image-placeholder" style={{ display: urlData.image ? 'none' : 'flex' }}>
+          <span className="placeholder-icon">🔗</span>
+          <span className="placeholder-text">沒有預覽</span>
+        </div>
+        
+        {/* Source badge */}
+        {sourceInfo && (
+          <div className="source-badge" style={{ backgroundColor: sourceInfo.color }}>
+            <img 
+              src={sourceInfo.icon} 
+              alt={sourceInfo.name} 
+              className="source-icon"
+            />
+            <span className="source-name">{sourceInfo.name}</span>
+          </div>
+        )}
+      </div>
+      
+      <div className="url-content">
+        <h3 className="url-title">
+          {urlData.title || '沒有標題'}
+        </h3>
+        
+        {urlData.description && (
+          <p className="url-description">
+            {urlData.description}
+          </p>
+        )}
+        
+        {/* Tags */}
+        {urlData.tags && urlData.tags.length > 0 && (
+          <div className="url-tags">
+            {urlData.tags.map((tag, tagIndex) => (
+              <span key={tagIndex} className="tag">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+        
+        <div className="url-actions">
+          <a 
+            href={urlData.url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="url-link"
+          >
+            <span className="link-icon">🔗</span>
+            <span className="link-text">訪問連結</span>
+          </a>
+          
+          <button 
+            onClick={() => onCopy(urlData.url)}
+            className="share-btn"
+            title="複製 URL 到剪貼板"
+          >
+            <span className="share-icon">📋</span>
+            <span className="share-text">分享</span>
+          </button>
+        </div>
+        
+        <div className="url-meta">
+          <span className="url-date">
+            <span className="date-icon">🕒</span>
+            {formatDate(urlData.createdAt)}
+          </span>
+          <span className="url-domain">
+            {new URL(urlData.url).hostname}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+});
 
 // Main App Content Component (only rendered when authenticated)
 function AppContent() {
@@ -35,7 +150,6 @@ function AppContent() {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | undefined>();
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('comfortable');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [urlToDelete, setUrlToDelete] = useState<UrlData | null>(null);
@@ -43,6 +157,7 @@ function AppContent() {
   const processedStateRef = useRef<string | null>(null);
 
   const location = useLocation();
+  const { showToast } = useToast();
 
   // Load layout preference from localStorage
   useEffect(() => {
@@ -102,16 +217,6 @@ function AppContent() {
     return source ? sourceMap[source] : null;
   };
 
-  // Toast notification system
-  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
-    const id = Date.now().toString();
-    const newToast: ToastMessage = { id, message, type };
-    setToasts(prev => [...prev, newToast]);
-    
-    setTimeout(() => {
-      setToasts(prev => prev.filter(toast => toast.id !== id));
-    }, 3000);
-  }, []);
 
   // Copy to clipboard function
   const copyToClipboard = async (url: string) => {
@@ -148,13 +253,7 @@ function AppContent() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch URLs. Make sure the server is running.';
       setError(errorMessage);
-      // Show error toast
-      const id = Date.now().toString();
-      const newToast: ToastMessage = { id, message: errorMessage, type: 'error' };
-      setToasts(prev => [...prev, newToast]);
-      setTimeout(() => {
-        setToasts(prev => prev.filter(toast => toast.id !== id));
-      }, 3000);
+      showToast(errorMessage, 'error');
       console.error('Error fetching URLs:', err);
     } finally {
       setLoading(false);
@@ -179,16 +278,11 @@ function AppContent() {
     } catch (err) {
       // Show error toast for load more failure
       const errorMessage = err instanceof Error ? err.message : 'Failed to load more URLs';
-      const id = Date.now().toString();
-      const newToast: ToastMessage = { id, message: errorMessage, type: 'error' };
-      setToasts(prev => [...prev, newToast]);
-      setTimeout(() => {
-        setToasts(prev => prev.filter(toast => toast.id !== id));
-      }, 3000);
+      showToast(errorMessage, 'error');
       console.error('Error fetching more URLs:', err);
       throw err; // Re-throw for InfiniteScroll error handling
     }
-  }, [hasMore, nextCursor]);
+  }, [hasMore, nextCursor, showToast]);
 
   // Handle URL deletion
   const handleDeleteUrl = useCallback(async () => {
@@ -246,17 +340,8 @@ function AppContent() {
       
       processedStateRef.current = stateKey;
       
-      // Show toast using direct state update instead of showToast dependency
-      const id = Date.now().toString();
-      const newToast: ToastMessage = { 
-        id, 
-        message: location.state.message, 
-        type: location.state.type || 'success' 
-      };
-      setToasts(prev => [...prev, newToast]);
-      setTimeout(() => {
-        setToasts(prev => prev.filter(toast => toast.id !== id));
-      }, 3000);
+      // Show toast for navigation state message
+      showToast(location.state.message, location.state.type || 'success');
       
       // Clear the state to prevent showing the message again on refresh
       window.history.replaceState(null, '', window.location.pathname);
@@ -266,9 +351,9 @@ function AppContent() {
         processedStateRef.current = null;
       }, 1000);
     }
-  }, [location.state]);
+  }, [location.state, showToast]);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
@@ -282,7 +367,7 @@ function AppContent() {
     } else {
       return date.toLocaleDateString();
     }
-  };
+  }, []);
 
   if (loading) {
     return (
@@ -315,15 +400,6 @@ function AppContent() {
 
   return (
     <div className="app">
-      {/* Toast notifications */}
-      <div className="toast-container">
-        {toasts.map((toast) => (
-          <div key={toast.id} className={`toast toast-${toast.type}`}>
-            {toast.message}
-          </div>
-        ))}
-      </div>
-
       <main className="main">
         {urls.length === 0 ? (
           <div className="empty-state">
@@ -380,105 +456,18 @@ function AppContent() {
                 {urls.map((urlData, index) => {
                   const sourceInfo = getSourceInfo(urlData.source);
                   
-                  // Create UrlCard component with long press
-                  const UrlCard = () => {
-                    const longPressHandlers = useLongPress({
-                      onLongPress: () => handleLongPress(urlData),
-                      delay: 700,
-                      shouldPreventDefault: true
-                    });
-                    
-                    return (
-                      <div 
-                        key={urlData._id} 
-                        className={`url-card layout-${layoutMode}`}
-                        style={{ animationDelay: `${index * 0.1}s` }}
-                        {...longPressHandlers}
-                      >
-                      <div className="url-image">
-                        {urlData.image ? (
-                          <img 
-                            src={urlData.image} 
-                            alt={urlData.title || 'URL preview'} 
-                            loading="lazy"
-                          />
-                        ) : null}
-                        <div className="image-placeholder" style={{ display: urlData.image ? 'none' : 'flex' }}>
-                          <span className="placeholder-icon">🔗</span>
-                          <span className="placeholder-text">沒有預覽</span>
-                        </div>
-                        
-                        {/* Source badge */}
-                        {sourceInfo && (
-                          <div className="source-badge" style={{ backgroundColor: sourceInfo.color }}>
-                            <img 
-                              src={sourceInfo.icon} 
-                              alt={sourceInfo.name} 
-                              className="source-icon"
-                            />
-                            <span className="source-name">{sourceInfo.name}</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="url-content">
-                        <h3 className="url-title">
-                          {urlData.title || '沒有標題'}
-                        </h3>
-                        
-                        {urlData.description && (
-                          <p className="url-description">
-                            {urlData.description}
-                          </p>
-                        )}
-                        
-                        {/* Tags */}
-                        {urlData.tags && urlData.tags.length > 0 && (
-                          <div className="url-tags">
-                            {urlData.tags.map((tag, tagIndex) => (
-                              <span key={tagIndex} className="tag">
-                                #{tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        
-                        <div className="url-actions">
-                          <a 
-                            href={urlData.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="url-link"
-                          >
-                            <span className="link-icon">🔗</span>
-                            <span className="link-text">訪問連結</span>
-                          </a>
-                          
-                          <button 
-                            onClick={() => copyToClipboard(urlData.url)}
-                            className="share-btn"
-                            title="複製 URL 到剪貼板"
-                          >
-                            <span className="share-icon">📋</span>
-                            <span className="share-text">分享</span>
-                          </button>
-                        </div>
-                        
-                        <div className="url-meta">
-                          <span className="url-date">
-                            <span className="date-icon">🕒</span>
-                            {formatDate(urlData.createdAt)}
-                          </span>
-                          <span className="url-domain">
-                            {new URL(urlData.url).hostname}
-                          </span>
-                        </div>
-                      </div>
-                      </div>
-                    );
-                  };
-
-                  return <UrlCard key={urlData._id} />;
+                  return (
+                    <UrlCard
+                      key={urlData._id}
+                      urlData={urlData}
+                      index={index}
+                      layoutMode={layoutMode}
+                      sourceInfo={sourceInfo}
+                      onLongPress={handleLongPress}
+                      onCopy={copyToClipboard}
+                      formatDate={formatDate}
+                    />
+                  );
                 })}
               </div>
             </InfiniteScroll>
@@ -547,10 +536,12 @@ function AuthenticatedApp() {
 
   // Show main app content when authenticated
   return (
-    <Routes>
-      <Route path="/" element={<AppContent />} />
-      <Route path="/add" element={<AddUrlPage />} />
-    </Routes>
+    <ToastProvider>
+      <Routes>
+        <Route path="/" element={<AppContent />} />
+        <Route path="/add" element={<AddUrlPage />} />
+      </Routes>
+    </ToastProvider>
   );
 }
 
