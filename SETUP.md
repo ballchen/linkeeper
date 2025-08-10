@@ -75,11 +75,34 @@ cp .env.example .env
 
 編輯 `.env` 檔案：
 ```env
+# Telegram Bot Configuration
 TELEGRAM_BOT_TOKEN=你的_telegram_bot_token
+
+# Database Configuration
 MONGODB_URI=mongodb://localhost:27017/url-saver
+
+# Server Configuration
 PORT=4000
 API_URL=http://localhost:4000/api/urls
+
+# YouTube API Configuration (可選，用於改善 YouTube 影片資訊獲取)
+YOUTUBE_API_KEY=你的_youtube_api_key
+
+# 其他配置 (詳見 .env.example)
+INTERNAL_API_KEY=your_internal_api_key
+JWT_SECRET=your_jwt_secret
 ```
+
+### YouTube API 設定 (可選但推薦)
+
+為了避免 YouTube 的 429 錯誤並獲得更好的影片資訊，建議設定 YouTube API：
+
+1. 前往 [Google Cloud Console](https://console.cloud.google.com/)
+2. 建立專案並啟用 "YouTube Data API v3"
+3. 建立 API 金鑰
+4. 將金鑰加入 `.env` 檔案
+
+詳細步驟請參考 `YOUTUBE_API_SETUP.md`。
 
 ## 4. 安裝依賴
 

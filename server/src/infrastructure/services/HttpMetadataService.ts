@@ -3,6 +3,7 @@ import * as cheerio from 'cheerio';
 import { MetadataService } from '../../domain/services/MetadataService';
 import { UrlMetadata } from '../../domain/entities/Url';
 import { S3ImageService } from './S3ImageService';
+import { YouTubeApiService } from './YouTubeApiService';
 import logger from '../../utils/logger';
 
 export class HttpMetadataService implements MetadataService {
@@ -20,7 +21,10 @@ export class HttpMetadataService implements MetadataService {
     'Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0'
   ];
 
-  constructor(private readonly s3ImageService: S3ImageService) {}
+  constructor(
+    private readonly s3ImageService: S3ImageService,
+    private readonly youtubeApiService: YouTubeApiService
+  ) {}
 
   /**
    * Get a random User Agent from the pool to avoid detection
@@ -49,7 +53,46 @@ export class HttpMetadataService implements MetadataService {
   }
 
   async fetchMetadata(url: string): Promise<UrlMetadata> {
+    // Try YouTube API first for YouTube URLs
+    if (this.youtubeApiService.isYouTubeVideoUrl(url)) {
+      logger.info(`Attempting to fetch YouTube metadata via API for URL: ${url}`);
+      
+      try {
+        const youtubeMetadata = await this.youtubeApiService.fetchMetadataByUrl(url);
+        
+        if (youtubeMetadata) {
+          // Upload YouTube thumbnail to S3 if available
+          let s3ImageKey: string | null = null;
+          if (youtubeMetadata.image) {
+            try {
+              logger.info(`Uploading YouTube thumbnail to S3 for URL: ${url}`);
+              s3ImageKey = await this.s3ImageService.uploadImageFromUrl(youtubeMetadata.image, url);
+              
+              if (s3ImageKey) {
+                logger.info(`YouTube thumbnail uploaded to S3 successfully: ${s3ImageKey}`);
+              } else {
+                logger.warn(`Failed to upload YouTube thumbnail to S3 for URL: ${url}`);
+              }
+            } catch (error: any) {
+              logger.error(`Error uploading YouTube thumbnail to S3: ${error.message}`);
+            }
+          }
+
+          logger.info(`Successfully fetched YouTube metadata via API for URL: ${url}`);
+          return {
+            ...youtubeMetadata,
+            image: s3ImageKey || youtubeMetadata.image || ''
+          };
+        }
+      } catch (error: any) {
+        logger.warn(`YouTube API failed for URL ${url}, falling back to web scraping: ${error.message}`);
+      }
+    }
+
+    // Fallback to traditional web scraping
     try {
+      logger.info(`Fetching metadata via web scraping for URL: ${url}`);
+      
       const response = await axios.get(url, {
         timeout: this.timeout,
         headers: this.getOptimizedHeaders()
@@ -78,6 +121,7 @@ export class HttpMetadataService implements MetadataService {
         }
       }
 
+      logger.info(`Successfully fetched metadata via web scraping for URL: ${url}`);
       return {
         title,
         description,

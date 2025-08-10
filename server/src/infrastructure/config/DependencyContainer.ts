@@ -10,6 +10,7 @@ import { MongoUserRepository } from '../database/MongoUserRepository';
 import { HttpMetadataService } from '../services/HttpMetadataService';
 import { HttpUrlAnalysisService } from '../services/HttpUrlAnalysisService';
 import { AWSS3ImageService, S3ImageService } from '../services/S3ImageService';
+import { YouTubeApiService } from '../services/YouTubeApiService';
 import { UrlController } from '../web/controllers/UrlController';
 import { AuthController } from '../web/controllers/AuthController';
 
@@ -19,6 +20,7 @@ export class DependencyContainer {
   private _urlRepository: UrlRepository;
   private _userRepository: UserRepository;
   private _s3ImageService: S3ImageService;
+  private _youtubeApiService: YouTubeApiService;
   private _metadataService: MetadataService;
   private _urlAnalysisService: UrlAnalysisService;
   private _addUrlUseCase: AddUrlUseCase;
@@ -32,7 +34,8 @@ export class DependencyContainer {
     this._urlRepository = new MongoUrlRepository();
     this._userRepository = new MongoUserRepository();
     this._s3ImageService = new AWSS3ImageService();
-    this._metadataService = new HttpMetadataService(this._s3ImageService);
+    this._youtubeApiService = new YouTubeApiService();
+    this._metadataService = new HttpMetadataService(this._s3ImageService, this._youtubeApiService);
     this._urlAnalysisService = new HttpUrlAnalysisService();
 
     // Application layer
@@ -98,5 +101,9 @@ export class DependencyContainer {
 
   get authController(): AuthController {
     return this._authController;
+  }
+
+  get youtubeApiService(): YouTubeApiService {
+    return this._youtubeApiService;
   }
 } 
