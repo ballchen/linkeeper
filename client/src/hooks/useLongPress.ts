@@ -25,8 +25,9 @@ export const useLongPress = ({
   const isLongPressRef = useRef<boolean>(false);
 
   const start = useCallback((event: React.MouseEvent | React.TouchEvent) => {
-    if (shouldPreventDefault && event.target) {
+    if (shouldPreventDefault) {
       event.preventDefault();
+      event.stopPropagation();
     }
 
     isLongPressRef.current = false;
@@ -37,7 +38,12 @@ export const useLongPress = ({
     }, delay);
   }, [onLongPress, delay, shouldPreventDefault]);
 
-  const clear = useCallback((_: React.MouseEvent | React.TouchEvent, shouldTriggerClick = true) => {
+  const clear = useCallback((event: React.MouseEvent | React.TouchEvent, shouldTriggerClick = true) => {
+    if (shouldPreventDefault) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -46,7 +52,7 @@ export const useLongPress = ({
     if (shouldTriggerClick && !isLongPressRef.current && onClick) {
       onClick();
     }
-  }, [onClick]);
+  }, [onClick, shouldPreventDefault]);
 
   return {
     onMouseDown: (e: React.MouseEvent) => start(e),

@@ -957,6 +957,14 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
+  /* Prevent text selection and touch behaviors */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* Compact layout - smaller cards */

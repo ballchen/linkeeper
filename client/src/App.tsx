@@ -217,6 +217,9 @@ function AppContent() {
 
   // Handle long press on URL card
   const handleLongPress = useCallback((urlData: UrlData) => {
+    // Prevent multiple modal opens
+    if (deleteModalOpen) return;
+    
     setUrlToDelete(urlData);
     setDeleteModalOpen(true);
     
@@ -224,7 +227,7 @@ function AppContent() {
     if (navigator.vibrate) {
       navigator.vibrate(50);
     }
-  }, []);
+  }, [deleteModalOpen]);
 
   useEffect(() => {
     fetchInitialUrls();
@@ -381,7 +384,8 @@ function AppContent() {
                   const UrlCard = () => {
                     const longPressHandlers = useLongPress({
                       onLongPress: () => handleLongPress(urlData),
-                      delay: 800
+                      delay: 700,
+                      shouldPreventDefault: true
                     });
                     
                     return (

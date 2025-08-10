@@ -19,18 +19,28 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   if (!isOpen) return null;
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (e.target === e.currentTarget && !isLoading) {
       onClose();
     }
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!isLoading) {
       onConfirm();
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!isLoading) {
       onClose();
     }
@@ -42,7 +52,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         <div className="delete-modal-header">
           <h3>確認刪除</h3>
           {!isLoading && (
-            <button className="delete-modal-close" onClick={handleCancel}>
+            <button className="delete-modal-close" onClick={(e) => handleCancel(e)}>
               ×
             </button>
           )}
@@ -66,14 +76,14 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         <div className="delete-modal-actions">
           <button 
             className="delete-modal-cancel"
-            onClick={handleCancel}
+            onClick={(e) => handleCancel(e)}
             disabled={isLoading}
           >
             取消
           </button>
           <button 
             className="delete-modal-confirm"
-            onClick={handleConfirm}
+            onClick={(e) => handleConfirm(e)}
             disabled={isLoading}
           >
             {isLoading ? (
