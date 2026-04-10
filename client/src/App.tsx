@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation, Link } from 'react-router-dom'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import InfiniteScroll from 'react-infinite-scroll-component'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -57,7 +57,7 @@ const UrlCard = memo<UrlCardProps>(({
     <div 
       key={urlData._id} 
       className={`url-card layout-${layoutMode}`}
-      style={{ animationDelay: `${index * 0.1}s` }}
+      style={{ animationDelay: `${Math.min(index * 0.05, 0.3)}s` }}
       {...longPressHandlers}
     >
       <div className="url-image">
@@ -119,7 +119,7 @@ const UrlCard = memo<UrlCardProps>(({
             <span className="link-text">訪問連結</span>
           </a>
           
-          <button 
+          <button
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -129,7 +129,7 @@ const UrlCard = memo<UrlCardProps>(({
             title="複製 URL 到剪貼板"
           >
             <span className="share-icon">📋</span>
-            <span className="share-text">分享</span>
+            <span className="share-text">複製</span>
           </button>
         </div>
         
@@ -226,7 +226,7 @@ function AppContent() {
   const copyToClipboard = async (url: string) => {
     try {
       await navigator.clipboard.writeText(url);
-      showToast('URL copied to clipboard! 📋', 'success');
+      showToast('已複製連結到剪貼板 📋', 'success');
     } catch {
       // Fallback for older browsers
       const textArea = document.createElement('textarea');
@@ -235,7 +235,7 @@ function AppContent() {
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      showToast('URL copied to clipboard! 📋', 'success');
+      showToast('已複製連結到剪貼板 📋', 'success');
     }
   };
 
@@ -361,15 +361,15 @@ function AppContent() {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-    
+
     if (diffInHours < 1) {
       const minutes = Math.floor(diffInHours * 60);
-      return `${minutes} minutes ago`;
+      return `${minutes} 分鐘前`;
     } else if (diffInHours < 24) {
       const hours = Math.floor(diffInHours);
-      return `${hours} hours ago`;
+      return `${hours} 小時前`;
     } else {
-      return date.toLocaleDateString();
+      return date.toLocaleDateString('zh-TW');
     }
   }, []);
 
@@ -404,12 +404,22 @@ function AppContent() {
 
   return (
     <div className="app">
+      {/* Unified Toolbar - always visible when authenticated */}
+      <UnifiedToolbar
+        layoutMode={layoutMode}
+        onLayoutChange={handleLayoutChange}
+      />
+
       <main className="main">
         {urls.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">📭</div>
             <h2>尚未儲存任何 URL</h2>
-            <p>發送 URL 到您的 Telegram 機器人，它就會出現在這裡！</p>
+            <p>直接在此新增連結，或透過 Telegram 機器人傳送</p>
+            <Link to="/add" className="empty-add-btn">
+              <span>➕</span>
+              新增第一個連結
+            </Link>
             <div className="empty-steps">
               <div className="step">
                 <span className="step-number">1</span>
@@ -427,11 +437,6 @@ function AppContent() {
           </div>
         ) : (
           <>
-            {/* Unified Toolbar */}
-            <UnifiedToolbar 
-              layoutMode={layoutMode} 
-              onLayoutChange={handleLayoutChange} 
-            />
             
             <InfiniteScroll
               dataLength={urls.length}
