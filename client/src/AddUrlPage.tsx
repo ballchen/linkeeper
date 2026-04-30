@@ -41,12 +41,12 @@ function AddUrlPage() {
     
     // Validate URL
     if (!url.trim()) {
-      setError('Please enter a URL')
+      setError('請輸入 URL')
       return
     }
-    
+
     if (!isValidUrl(url.trim())) {
-      setError('Please enter a valid URL (must include protocol, e.g., https://)')
+      setError('請輸入有效的 URL（需包含協定，例如 https://）')
       return
     }
 
@@ -56,9 +56,9 @@ function AddUrlPage() {
       await apiService.addUrl({ url: url.trim() })
 
       // Success - navigate back to home
-      navigate('/', { 
-        state: { 
-          message: 'URL saved successfully! 🎉',
+      navigate('/', {
+        state: {
+          message: 'URL 儲存成功！🎉',
           type: 'success'
         }
       })
@@ -66,7 +66,7 @@ function AddUrlPage() {
       if (err instanceof Error) {
         setError(err.message)
       } else {
-        setError('Failed to save URL. Please try again.')
+        setError('儲存 URL 失敗，請再試一次。')
       }
     } finally {
       setLoading(false)
@@ -109,7 +109,7 @@ function AddUrlPage() {
               className="cancel-btn"
               disabled={loading}
             >
-              Cancel
+              取消
             </button>
             <button
               type="submit"
@@ -119,12 +119,12 @@ function AddUrlPage() {
               {loading ? (
                 <>
                   <span className="loading-spinner" style={{width: '16px', height: '16px'}}></span>
-                  Saving...
+                  儲存中...
                 </>
               ) : (
                 <>
                   <span className="save-icon">💾</span>
-                  Save URL
+                  儲存連結
                 </>
               )}
             </button>
@@ -132,11 +132,11 @@ function AddUrlPage() {
         </form>
 
         <div className="add-url-tips">
-          <h3>💡 Tips</h3>
+          <h3>💡 小提示</h3>
           <ul>
-            <li>Make sure to include <code>https://</code> or <code>http://</code></li>
-            <li>We'll automatically fetch the title and description</li>
-            <li>If the URL already exists, it will be updated</li>
+            <li>確保包含 <code>https://</code> 或 <code>http://</code></li>
+            <li>我們將自動獲取頁面標題和描述</li>
+            <li>如果 URL 已存在，將會更新其資訊</li>
           </ul>
         </div>
       </div>
