@@ -178,29 +178,29 @@ class ApiService {
    */
   private handleError(error: unknown): Error {
     if (axios.isAxiosError(error)) {
-      const message = error.response?.data?.message || error.message || 'An unknown error occurred';
+      const message = error.response?.data?.message || error.message || '發生未知錯誤';
       const status = error.response?.status;
-      
+
       if (status === 401) {
-        return new Error('Authentication required. Please login again.');
+        return new Error('需要登入，請重新登入。');
       } else if (status === 403) {
-        return new Error('You are not authorized to access this resource.');
+        return new Error('你沒有存取此資源的權限。');
       } else if (status === 404) {
-        return new Error('The requested resource was not found.');
+        return new Error('找不到請求的資源。');
       } else if (status === 500) {
-        return new Error('Server error. Please try again later.');
+        return new Error('伺服器發生錯誤，請稍後再試。');
       } else if (status && status >= 400) {
-        return new Error(`Request failed: ${message}`);
+        return new Error(`請求失敗：${message}`);
       } else if (error.code === 'ECONNABORTED') {
-        return new Error('Request timeout. Please check your connection.');
+        return new Error('請求逾時，請檢查網路連線。');
       } else if (error.code === 'ERR_NETWORK') {
-        return new Error('Network error. Please check your connection and server status.');
+        return new Error('網路錯誤，請檢查連線與伺服器狀態。');
       }
-      
+
       return new Error(message);
     }
-    
-    return new Error('An unexpected error occurred');
+
+    return new Error('發生未預期的錯誤');
   }
 
   /**

@@ -14,7 +14,7 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({ onError })
 
   const handleSuccess = async (credentialResponse: CredentialResponse) => {
     if (!credentialResponse.credential) {
-      const errorMessage = 'No credential received from Google';
+      const errorMessage = '未收到 Google 的登入憑證';
       console.error(errorMessage);
       onError?.(errorMessage);
       return;
@@ -26,7 +26,7 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({ onError })
       await login(credentialResponse.credential);
       console.log('Google login successful');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      const errorMessage = error instanceof Error ? error.message : '登入失敗';
       console.error('Google login failed:', errorMessage);
       onError?.(errorMessage);
     } finally {
@@ -35,7 +35,7 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({ onError })
   };
 
   const handleError = () => {
-    const errorMessage = 'Google login failed or was cancelled';
+    const errorMessage = 'Google 登入失敗或已取消';
     console.error(errorMessage);
     onError?.(errorMessage);
   };
@@ -45,7 +45,7 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({ onError })
       {isLoading ? (
         <div className="google-login-loading">
           <div className="spinner"></div>
-          <span>登入中...</span>
+          <span>登入中⋯</span>
         </div>
       ) : (
         <GoogleLogin

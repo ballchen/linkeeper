@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import { apiService } from './services/apiService'
 import './AddUrlPage.css'
@@ -11,19 +11,17 @@ function AddUrlPage() {
   const navigate = useNavigate()
   const { user, isAuthenticated } = useAuth()
 
-  // Redirect if not authenticated
   if (!isAuthenticated || !user) {
     return (
       <div className="add-url-page">
         <div className="auth-loading">
           <div className="loading-spinner"></div>
-          <p>正在檢查認證狀態...</p>
+          <p>正在檢查登入狀態⋯</p>
         </div>
       </div>
     );
   }
 
-  // Validate URL format
   const isValidUrl = (urlString: string): boolean => {
     try {
       new URL(urlString)
@@ -35,18 +33,16 @@ function AddUrlPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    // Reset error
+
     setError(null)
-    
-    // Validate URL
+
     if (!url.trim()) {
-      setError('請輸入 URL')
+      setError('請輸入網址')
       return
     }
 
     if (!isValidUrl(url.trim())) {
-      setError('請輸入有效的 URL（需包含協定，例如 https://）')
+      setError('網址格式不正確，開頭需包含 https:// 或 http://')
       return
     }
 
@@ -55,10 +51,9 @@ function AddUrlPage() {
     try {
       await apiService.addUrl({ url: url.trim() })
 
-      // Success - navigate back to home
       navigate('/', {
         state: {
-          message: 'URL 儲存成功！🎉',
+          message: '連結已儲存',
           type: 'success'
         }
       })
@@ -66,7 +61,7 @@ function AddUrlPage() {
       if (err instanceof Error) {
         setError(err.message)
       } else {
-        setError('儲存 URL 失敗，請再試一次。')
+        setError('儲存失敗，請再試一次。')
       }
     } finally {
       setLoading(false)
@@ -77,13 +72,14 @@ function AddUrlPage() {
     <div className="add-url-page">
       <div className="add-url-container">
         <div className="add-url-header">
-          <h1>新增 URL</h1>
-          <p>將 URL 儲存到您的收藏</p>
+          <Link to="/" className="back-link">← 回到收藏庫</Link>
+          <h1>新增連結</h1>
+          <p>貼上網址，標題與預覽會自動抓取</p>
         </div>
 
         <form onSubmit={handleSubmit} className="add-url-form">
           <div className="input-group">
-            <label htmlFor="url">URL</label>
+            <label htmlFor="url">網址</label>
             <input
               id="url"
               type="url"
@@ -95,8 +91,7 @@ function AddUrlPage() {
               autoFocus
             />
             {error && (
-              <div className="error-message">
-                <span className="error-icon">⚠️</span>
+              <div className="error-message" role="alert">
                 {error}
               </div>
             )}
@@ -118,25 +113,23 @@ function AddUrlPage() {
             >
               {loading ? (
                 <>
-                  <span className="loading-spinner" style={{width: '16px', height: '16px'}}></span>
-                  儲存中...
+                  <span className="loading-spinner" style={{ width: '16px', height: '16px' }}></span>
+                  儲存中⋯
                 </>
               ) : (
-                <>
-                  <span className="save-icon">💾</span>
-                  儲存連結
-                </>
+                '儲存連結'
               )}
             </button>
           </div>
         </form>
 
         <div className="add-url-tips">
-          <h3>💡 小提示</h3>
+          <h3>小提示</h3>
           <ul>
-            <li>確保包含 <code>https://</code> 或 <code>http://</code></li>
-            <li>我們將自動獲取頁面標題和描述</li>
-            <li>如果 URL 已存在，將會更新其資訊</li>
+            <li>網址開頭需包含 <code>https://</code> 或 <code>http://</code></li>
+            <li>標題、描述與預覽圖會自動抓取</li>
+            <li>如果網址已存在，會更新原本的資料</li>
+            <li>也可以直接把連結傳給你的 Telegram 機器人</li>
           </ul>
         </div>
       </div>
@@ -144,4 +137,4 @@ function AddUrlPage() {
   )
 }
 
-export default AddUrlPage 
+export default AddUrlPage

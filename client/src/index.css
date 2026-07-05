@@ -1,68 +1,168 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500..700;1,9..144,500&family=Instrument+Sans:wght@400;500;600;700&family=Noto+Serif+TC:wght@600;700&display=swap');
+
+/* ===================================
+   LinkKeeper — 設計基礎
+   暖紙張 × 墨色的「個人書房」風格
+   ================================= */
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Typography */
+  --font-display: 'Fraunces', 'Noto Serif TC', 'PingFang TC', serif;
+  --font-body: 'Instrument Sans', -apple-system, 'PingFang TC', 'Noto Sans TC',
+    'Microsoft JhengHei', sans-serif;
+
+  /* Surfaces & ink */
+  --bg: #f6f2ea;
+  --bg-deep: #eee8da;
+  --surface: #fffdf8;
+  --ink: #211c14;
+  --ink-2: #5c5442;
+  --ink-3: #8b8069;
+  --line: #e3dbc9;
+  --line-strong: #cfc5ad;
+
+  /* Accent — 燒赭色（burnt sienna） */
+  --accent: #b0501a;
+  --accent-strong: #93400f;
+  --accent-ink: #fff8ef;
+  --accent-tint: #f2e2d2;
+
+  --danger: #b3372c;
+  --danger-tint: #f6e0dc;
+  --success: #3f6f4f;
+  --success-tint: #e0ebe0;
+
+  --shadow-sm: 0 1px 2px rgba(62, 48, 24, 0.06);
+  --shadow-md: 0 2px 8px rgba(62, 48, 24, 0.08);
+  --shadow-lg: 0 12px 32px -8px rgba(62, 48, 24, 0.18);
+  --shadow-pop: 0 24px 48px -12px rgba(62, 48, 24, 0.25);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --t-fast: 0.15s var(--ease-out);
+  --t-normal: 0.3s var(--ease-out);
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17130d;
+    --bg-deep: #100d08;
+    --surface: #221c12;
+    --ink: #f0e9d8;
+    --ink-2: #c6bca4;
+    --ink-3: #94896e;
+    --line: #362f1f;
+    --line-strong: #4a4229;
+
+    --accent: #e0763a;
+    --accent-strong: #ea8b55;
+    --accent-ink: #1c1207;
+    --accent-tint: #3a2a19;
+
+    --danger: #e06a5d;
+    --danger-tint: #3d221e;
+    --success: #7cab8b;
+    --success-tint: #1f2e23;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
+    --shadow-pop: 0 24px 48px -12px rgba(0, 0, 0, 0.6);
+  }
 }
-a:hover {
-  color: #535bf2;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
   min-height: 100vh;
+  min-width: 320px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+/* 紙張質感：固定的柔和暈影（iOS 不支援 background-attachment: fixed，改用偽元素） */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(
+    ellipse 120% 80% at 50% -10%,
+    var(--surface) 0%,
+    var(--bg) 55%,
+    var(--bg-deep) 130%
+  );
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--accent);
+}
+
+button,
+input {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
 }
 
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.4em 0.8em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  background: none;
+  border: none;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
