@@ -5,34 +5,19 @@ import logger from '../utils/logger';
 
 dotenv.config();
 
-// Check if required environment variables are set
+// Required environment variables — 於 startBot() 檢查，避免在 import 期就 throw 而拖垮整個 process
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const internalApiKey = process.env.INTERNAL_API_KEY;
 const allowedUsers = process.env.TELEGRAM_ALLOWED_USERS;
 
-if (!botToken) {
-  logger.error('TELEGRAM_BOT_TOKEN must be provided in environment variables');
-  throw new Error('TELEGRAM_BOT_TOKEN must be provided in environment variables');
-}
-
-if (!internalApiKey) {
-  logger.error('INTERNAL_API_KEY must be provided in environment variables');
-  throw new Error('INTERNAL_API_KEY must be provided in environment variables');
-}
-
-if (!allowedUsers) {
-  logger.error('TELEGRAM_ALLOWED_USERS must be provided in environment variables');
-  throw new Error('TELEGRAM_ALLOWED_USERS must be provided in environment variables');
-}
-
-// Create bot instance
-const bot = new Telegraf(botToken);
+// Create bot instance（token 缺失時延後到 startBot() 才報錯）
+const bot = new Telegraf(botToken || '');
 
 // URL validation regex
 const urlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
 // Parse allowed users list
-const allowedUsersList = allowedUsers.split(',').map(user => user.trim()).filter(user => user.length > 0);
+const allowedUsersList = (allowedUsers || '').split(',').map(user => user.trim()).filter(user => user.length > 0);
 
 // User authorization helper
 const isAuthorizedUser = (ctx: Context): boolean => {
@@ -155,21 +140,31 @@ bot.catch((err, ctx) => {
 });
 
 export const startBot = () => {
-  try {
-    bot.launch();
-    logger.info('LinkKeeper Telegram bot launched successfully');
-    
-    // Enable graceful stop
-    process.once('SIGINT', () => {
-      logger.info('Received SIGINT, stopping bot gracefully');
-      bot.stop('SIGINT');
-    });
-    process.once('SIGTERM', () => {
-      logger.info('Received SIGTERM, stopping bot gracefully');
-      bot.stop('SIGTERM');
-    });
-  } catch (error) {
-    logger.error(`Failed to launch Telegram bot: ${error}`);
-    throw error;
+  const missing = [
+    !botToken && 'TELEGRAM_BOT_TOKEN',
+    !internalApiKey && 'INTERNAL_API_KEY',
+    !allowedUsers && 'TELEGRAM_ALLOWED_USERS'
+  ].filter(Boolean);
+
+  if (missing.length > 0) {
+    // 只讓 bot 停用，不影響 API 伺服器繼續運作
+    logger.error(`Telegram bot disabled — missing environment variables: ${missing.join(', ')}`);
+    return;
   }
-}; 
+
+  // launch() 的 Promise 在 bot 停止前不會 resolve，因此不 await，僅捕捉非同步錯誤
+  bot.launch().catch((error) => {
+    logger.error(`Telegram bot stopped unexpectedly: ${error}`);
+  });
+  logger.info('LinkKeeper Telegram bot launched successfully');
+
+  // Enable graceful stop
+  process.once('SIGINT', () => {
+    logger.info('Received SIGINT, stopping bot gracefully');
+    bot.stop('SIGINT');
+  });
+  process.once('SIGTERM', () => {
+    logger.info('Received SIGTERM, stopping bot gracefully');
+    bot.stop('SIGTERM');
+  });
+};

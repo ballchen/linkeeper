@@ -5,6 +5,7 @@ import { UrlAnalysisService } from '../../domain/services/UrlAnalysisService';
 
 export interface AddUrlRequest {
   url: string;
+  ownerEmail: string;
   tags?: string[];
 }
 
@@ -21,8 +22,8 @@ export class AddUrlUseCase {
   ) {}
 
   async execute(request: AddUrlRequest): Promise<AddUrlResponse> {
-    // Check if URL already exists
-    const existingUrl = await this.urlRepository.findByUrl(request.url);
+    // Check if URL already exists for this owner
+    const existingUrl = await this.urlRepository.findByUrl(request.url, request.ownerEmail);
     if (existingUrl) {
       return {
         url: existingUrl,
@@ -44,7 +45,7 @@ export class AddUrlUseCase {
     };
 
     // Create new URL entity
-    const newUrl = Url.create(request.url, enrichedMetadata);
+    const newUrl = Url.create(request.url, enrichedMetadata, request.ownerEmail);
 
     // Save to repository
     const savedUrl = await this.urlRepository.save(newUrl);

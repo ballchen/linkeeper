@@ -8,7 +8,14 @@ export interface AuthenticatedRequest extends Request {
     email: string;
     name: string;
   };
+  isAuthenticated?: boolean;
 }
+
+export const getAllowedEmails = (): string[] =>
+  process.env.ALLOWED_EMAILS
+    ?.split(',')
+    .map(email => email.trim().toLowerCase())
+    .filter(Boolean) || [];
 
 interface JWTPayload {
   id: string;
@@ -58,13 +65,22 @@ export const validateJWT = (req: AuthenticatedRequest, res: Response, next: Next
       return;
     }
 
-    // Verify the JWT token
-    const decoded = jwt.verify(token, jwtSecret) as JWTPayload;
+    // Verify the JWT token (鎖定演算法避免 algorithm confusion)
+    const decoded = jwt.verify(token, jwtSecret, { algorithms: ['HS256'] }) as JWTPayload;
 
-    // Check if the user is in the allowed list
-    const allowedEmails = process.env.ALLOWED_EMAILS?.split(',').map(email => email.trim()) || [];
-    
-    if (allowedEmails.length > 0 && !allowedEmails.includes(decoded.email)) {
+    // Fail closed：允許清單未設定時一律拒絕，避免任何 Google 帳號都能存取
+    const allowedEmails = getAllowedEmails();
+
+    if (allowedEmails.length === 0) {
+      logger.error('ALLOWED_EMAILS is not configured — rejecting all requests');
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'Access control is not configured on this server.'
+      });
+      return;
+    }
+
+    if (!allowedEmails.includes(decoded.email.toLowerCase())) {
       logger.warn(`Unauthorized user attempted access: ${decoded.email} from IP: ${req.ip}`);
       res.status(403).json({
         error: 'Forbidden',

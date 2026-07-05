@@ -3,6 +3,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import axios from 'axios';
 import { createHash } from 'crypto';
 import path from 'path';
+import { assertSafeExternalUrl, blockUnsafeRedirect } from '../../utils/urlSafety';
 import logger from '../../utils/logger';
 
 export interface S3ImageService {
@@ -39,6 +40,9 @@ export class AWSS3ImageService implements S3ImageService {
 
       logger.info(`Starting image upload from URL: ${imageUrl}`);
 
+      // 圖片網址來自被抓取頁面的 og:image，同樣屬於不可信輸入
+      await assertSafeExternalUrl(imageUrl);
+
       // Download image from URL
       const response = await axios.get(imageUrl, {
         responseType: 'arraybuffer',
@@ -49,6 +53,8 @@ export class AWSS3ImageService implements S3ImageService {
         },
         maxContentLength: 10 * 1024 * 1024, // 10MB limit
         maxBodyLength: 10 * 1024 * 1024, // 10MB limit
+        maxRedirects: 5,
+        beforeRedirect: blockUnsafeRedirect,
       });
 
       // Check if response is actually an image

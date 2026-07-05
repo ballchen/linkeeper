@@ -6,6 +6,7 @@ export interface GetUrlsResponse {
 }
 
 export interface GetUrlsPaginatedRequest {
+  ownerEmail: string;
   limit?: number;
   cursor?: string;
   sortBy?: 'createdAt';
@@ -27,9 +28,9 @@ export interface GetUrlsPaginatedResponse {
 export class GetUrlsUseCase {
   constructor(private readonly urlRepository: UrlRepository) {}
 
-  async execute(): Promise<GetUrlsResponse> {
-    const urls = await this.urlRepository.findAll();
-    
+  async execute(ownerEmail: string): Promise<GetUrlsResponse> {
+    const urls = await this.urlRepository.findAll(ownerEmail);
+
     return {
       urls
     };
@@ -37,6 +38,7 @@ export class GetUrlsUseCase {
 
   async executeWithPagination(request: GetUrlsPaginatedRequest): Promise<GetUrlsPaginatedResponse> {
     const params: UrlQueryParams = {
+      ownerEmail: request.ownerEmail,
       limit: request.limit || 50,
       cursor: request.cursor,
       sortBy: request.sortBy || 'createdAt',

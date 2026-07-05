@@ -6,6 +6,7 @@ import { UrlSource } from '../../domain/services/UrlAnalysisService';
 interface UrlDocument extends Document {
   _id: mongoose.Types.ObjectId;
   url: string;
+  ownerEmail?: string | null;
   title?: string;
   description?: string;
   image?: string;
@@ -16,26 +17,39 @@ interface UrlDocument extends Document {
 }
 
 const UrlSchema: Schema = new Schema({
-  url: { type: String, required: true, unique: true },
+  url: { type: String, required: true },
+  // null 代表尚未遷移的舊資料（見 scripts/migrateOwnership.ts）
+  ownerEmail: { type: String, default: null, index: true },
   title: { type: String },
   description: { type: String },
   image: { type: String },
-  source: { 
-    type: String, 
+  source: {
+    type: String,
     enum: ['facebook', 'instagram', 'threads', 'youtube'],
-    required: false 
+    required: false
   },
   tags: [{ type: String }],
   createdAt: { type: Date, default: Date.now },
   deletedAt: { type: Date, default: null }
 });
 
+// 同一使用者的有效連結不可重複；deletedAt 納入索引讓軟刪除後可重新收藏
+// 注意：舊的 url_1 唯一索引需由 migration script 移除
+UrlSchema.index({ url: 1, ownerEmail: 1, deletedAt: 1 }, { unique: true });
+
 const UrlModel = mongoose.model<UrlDocument>('Url', UrlSchema);
+
+/* 讓使用者輸入可安全地放進 $regex */
+const escapeRegex = (input: string): string => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/* 過濾條件同時涵蓋本人資料與尚未遷移的舊資料（ownerEmail: null） */
+const ownerFilter = (ownerEmail: string) => ({ $in: [ownerEmail, null] });
 
 export class MongoUrlRepository implements UrlRepository {
   async save(url: Url): Promise<Url> {
     const urlDoc = new UrlModel({
       url: url.url,
+      ownerEmail: url.ownerEmail,
       title: url.metadata.title,
       description: url.metadata.description,
       image: url.metadata.image,
@@ -48,18 +62,23 @@ export class MongoUrlRepository implements UrlRepository {
     return this.mapToEntity(savedDoc);
   }
 
-  async findByUrl(url: string): Promise<Url | null> {
-    const urlDoc = await UrlModel.findOne({ url, deletedAt: null });
+  async findByUrl(url: string, ownerEmail: string): Promise<Url | null> {
+    const urlDoc = await UrlModel.findOne({ url, ownerEmail: ownerFilter(ownerEmail), deletedAt: null });
     return urlDoc ? this.mapToEntity(urlDoc) : null;
   }
 
-  async findAll(): Promise<Url[]> {
-    const urlDocs = await UrlModel.find({ deletedAt: null }).sort({ createdAt: -1 });
+  async findAll(ownerEmail?: string): Promise<Url[]> {
+    const query: Record<string, unknown> = { deletedAt: null };
+    if (ownerEmail) {
+      query.ownerEmail = ownerFilter(ownerEmail);
+    }
+    const urlDocs = await UrlModel.find(query).sort({ createdAt: -1 });
     return urlDocs.map(doc => this.mapToEntity(doc));
   }
 
   async findWithPagination(params: UrlQueryParams): Promise<PaginatedResult<Url>> {
     const {
+      ownerEmail,
       limit = 50,
       cursor,
       sortBy = 'createdAt',
@@ -70,12 +89,12 @@ export class MongoUrlRepository implements UrlRepository {
     } = params;
 
     // Build query
-    const query: any = { deletedAt: null };
+    const query: any = { deletedAt: null, ownerEmail: ownerFilter(ownerEmail) };
 
     // Cursor-based pagination using _id
     if (cursor) {
       try {
-        query._id = order === 'desc' 
+        query._id = order === 'desc'
           ? { $lt: new mongoose.Types.ObjectId(cursor) }
           : { $gt: new mongoose.Types.ObjectId(cursor) };
       } catch (error) {
@@ -83,12 +102,12 @@ export class MongoUrlRepository implements UrlRepository {
       }
     }
 
-    // Search functionality (for future)
     if (search) {
+      const safeSearch = escapeRegex(search);
       query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { url: { $regex: search, $options: 'i' } }
+        { title: { $regex: safeSearch, $options: 'i' } },
+        { description: { $regex: safeSearch, $options: 'i' } },
+        { url: { $regex: safeSearch, $options: 'i' } }
       ];
     }
 
@@ -185,7 +204,8 @@ export class MongoUrlRepository implements UrlRepository {
       doc._id.toString(),
       doc.url,
       metadata,
-      doc.createdAt
+      doc.createdAt,
+      doc.ownerEmail ?? null
     );
   }
 } 

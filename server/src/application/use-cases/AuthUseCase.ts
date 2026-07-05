@@ -32,10 +32,11 @@ export class AuthUseCase {
     this.oauthClient = new OAuth2Client(clientId, clientSecret);
     
     // Load allowed emails from environment variable
-    this.allowedEmails = process.env.ALLOWED_EMAILS?.split(',').map(email => email.trim()) || [];
-    
+    this.allowedEmails = process.env.ALLOWED_EMAILS?.split(',').map(email => email.trim().toLowerCase()).filter(Boolean) || [];
+
     if (this.allowedEmails.length === 0) {
-      logger.warn('No allowed emails configured. Anyone with a valid Google account can access the application.');
+      // Fail closed：沒有允許清單時所有登入都會被拒絕（見 loginWithGoogle）
+      logger.error('ALLOWED_EMAILS is not configured — all login attempts will be rejected.');
     } else {
       logger.info(`Allowed emails configured: ${this.allowedEmails.length} emails`);
     }
@@ -58,8 +59,8 @@ export class AuthUseCase {
         throw new Error('Invalid Google token payload');
       }
 
-      // Check if user is in allowed list
-      if (this.allowedEmails.length > 0 && !this.allowedEmails.includes(payload.email)) {
+      // Check if user is in allowed list (fail closed when the list is empty)
+      if (!this.allowedEmails.includes(payload.email.toLowerCase())) {
         logger.warn(`Unauthorized Google login attempt from: ${payload.email}`);
         throw new Error('Your account is not authorized to access this application');
       }
@@ -119,24 +120,6 @@ export class AuthUseCase {
       logger.error(`Unknown error during Google authentication: ${error}`);
       throw new Error('Authentication failed');
     }
-  }
-
-  /**
-   * Verify if user is authorized to access the application
-   */
-  isEmailAllowed(email: string): boolean {
-    if (this.allowedEmails.length === 0) {
-      return true; // No restrictions
-    }
-    
-    return this.allowedEmails.includes(email);
-  }
-
-  /**
-   * Get allowed emails list (for admin purposes)
-   */
-  getAllowedEmails(): string[] {
-    return [...this.allowedEmails];
   }
 
   /**

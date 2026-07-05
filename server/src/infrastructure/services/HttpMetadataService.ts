@@ -4,6 +4,7 @@ import { MetadataService } from '../../domain/services/MetadataService';
 import { UrlMetadata } from '../../domain/entities/Url';
 import { S3ImageService } from './S3ImageService';
 import { YouTubeApiService } from './YouTubeApiService';
+import { assertSafeExternalUrl, blockUnsafeRedirect } from '../../utils/urlSafety';
 import logger from '../../utils/logger';
 
 export class HttpMetadataService implements MetadataService {
@@ -92,10 +93,14 @@ export class HttpMetadataService implements MetadataService {
     // Fallback to traditional web scraping
     try {
       logger.info(`Fetching metadata via web scraping for URL: ${url}`);
-      
+
+      await assertSafeExternalUrl(url);
+
       const response = await axios.get(url, {
         timeout: this.timeout,
-        headers: this.getOptimizedHeaders()
+        headers: this.getOptimizedHeaders(),
+        maxRedirects: 5,
+        beforeRedirect: blockUnsafeRedirect
       });
 
       const $ = cheerio.load(response.data);

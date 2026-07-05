@@ -20,7 +20,15 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/url-sa
 let server: Server;
 
 // Middleware
-app.use(cors());
+// CORS 白名單：ALLOWED_ORIGINS 以逗號分隔；未設定時開放所有來源（僅建議於本機開發）
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(origin => origin.trim()).filter(Boolean);
+if (allowedOrigins && allowedOrigins.length > 0) {
+  app.use(cors({ origin: allowedOrigins }));
+  logger.info(`CORS restricted to: ${allowedOrigins.join(', ')}`);
+} else {
+  app.use(cors());
+  logger.warn('ALLOWED_ORIGINS is not set — CORS is open to all origins. Set it in production.');
+}
 app.use(express.json());
 
 // Request logging middleware
