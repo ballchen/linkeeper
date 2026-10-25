@@ -1,0 +1,14 @@
+// 複製成 Local.xcconfig 後填入（Local.xcconfig 已被 .gitignore 排除）
+// Team ID：https://developer.apple.com/account → Membership details
+LK_TEAM_ID = ABCDE12345
+
+// Google Cloud Console → Credentials → OAuth client ID（類型選 iOS，Bundle ID 填 LK_BUNDLE_ID）
+LK_GOOGLE_IOS_CLIENT_ID = 1234567890-abc.apps.googleusercontent.com
+// 上面 client ID 反過來寫（Google 下載的 plist 裡的 REVERSED_CLIENT_ID）
+LK_GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.1234567890-abc
+
+// Bundle ID 被別人用過時改這裡（App Group 會跟著變）
+// LK_BUNDLE_ID = cc.ballchen.linkkeeper
+
+// 本機開發 server（實機要用 Mac 的區網 IP）
+// LK_API_BASE_URL = http:/$()/192.168.1.10:4000/api

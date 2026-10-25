@@ -1,0 +1,12 @@
+// 共用設定；個人值（Team ID、Google client）放在 Local.xcconfig（不進版控）
+LK_BUNDLE_ID = cc.ballchen.linkkeeper
+LK_APP_GROUP = group.$(LK_BUNDLE_ID)
+LK_TEAM_ID =
+LK_API_BASE_URL = https:/$()/lk-api.ballchen.cc/api
+LK_WEB_URL = https:/$()/lk.ballchen.cc
+LK_GOOGLE_IOS_CLIENT_ID =
+// 網頁版的 OAuth client（server 的 GOOGLE_CLIENT_ID）；client ID 不是機密
+LK_GOOGLE_SERVER_CLIENT_ID = 563986731684-69e9pfdbck5sng0b3kd8vbtdc8t1tm9t.apps.googleusercontent.com
+LK_GOOGLE_REVERSED_CLIENT_ID =
+
+#include? "Local.xcconfig"

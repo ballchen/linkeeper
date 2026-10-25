@@ -1,0 +1,147 @@
+name: LinkKeeper
+options:
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  developmentLanguage: zh-Hant
+configFiles:
+  Debug: Config/Base.xcconfig
+  Release: Config/Base.xcconfig
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: $(LK_TEAM_ID)
+    CODE_SIGN_STYLE: Automatic
+    TARGETED_DEVICE_FAMILY: "1"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+packages:
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: 8.0.0
+targets:
+  LinkKeeperKit:
+    type: framework
+    platform: iOS
+    sources: [LinkKeeperKit]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(LK_BUNDLE_ID).kit
+        APPLICATION_EXTENSION_API_ONLY: YES
+        GENERATE_INFOPLIST_FILE: YES
+        SKIP_INSTALL: YES
+        DEFINES_MODULE: YES
+
+  LinkKeeper:
+    type: application
+    platform: iOS
+    sources:
+      - LinkKeeper
+    dependencies:
+      - target: LinkKeeperKit
+      - target: ShareExtension
+      - package: GoogleSignIn
+        product: GoogleSignIn
+    entitlements:
+      path: LinkKeeper/LinkKeeper.entitlements
+      properties:
+        com.apple.security.application-groups: [$(LK_APP_GROUP)]
+        keychain-access-groups: [$(AppIdentifierPrefix)$(LK_BUNDLE_ID).shared]
+    info:
+      path: LinkKeeper/Info.plist
+      properties:
+        CFBundleDisplayName: LinkKeeper
+        CFBundleDevelopmentRegion: zh-Hant
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIApplicationSupportsIndirectInputEvents: true
+        ITSAppUsesNonExemptEncryption: false
+        GIDClientID: $(LK_GOOGLE_IOS_CLIENT_ID)
+        # ID token 的 audience 用網頁版 client，server 現有的 GOOGLE_CLIENT_ID 就能驗證
+        GIDServerClientID: $(LK_GOOGLE_SERVER_CLIENT_ID)
+        CFBundleURLTypes:
+          - CFBundleURLSchemes: [$(LK_GOOGLE_REVERSED_CLIENT_ID)]
+        LSApplicationQueriesSchemes: [youtube, instagram, fb, barcelona]
+        BGTaskSchedulerPermittedIdentifiers: [$(LK_BUNDLE_ID).upload]
+        UIBackgroundModes: [fetch]
+        # 只放行 localhost / 區網的 http，方便連本機 server
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        LKAPIBaseURL: $(LK_API_BASE_URL)
+        LKWebURL: $(LK_WEB_URL)
+        LKAppGroup: $(LK_APP_GROUP)
+        LKKeychainGroup: $(AppIdentifierPrefix)$(LK_BUNDLE_ID).shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(LK_BUNDLE_ID)
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+  ShareExtension:
+    type: app-extension
+    platform: iOS
+    sources: [ShareExtension]
+    dependencies:
+      - target: LinkKeeperKit
+        embed: false
+    entitlements:
+      path: ShareExtension/ShareExtension.entitlements
+      properties:
+        com.apple.security.application-groups: [$(LK_APP_GROUP)]
+        keychain-access-groups: [$(AppIdentifierPrefix)$(LK_BUNDLE_ID).shared]
+    info:
+      path: ShareExtension/Info.plist
+      properties:
+        CFBundleDisplayName: LinkKeeper
+        CFBundleDevelopmentRegion: zh-Hant
+        # 只放行 localhost / 區網的 http，方便連本機 server
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        LKAPIBaseURL: $(LK_API_BASE_URL)
+        LKWebURL: $(LK_WEB_URL)
+        LKAppGroup: $(LK_APP_GROUP)
+        LKKeychainGroup: $(AppIdentifierPrefix)$(LK_BUNDLE_ID).shared
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionJavaScriptPreprocessingFile: GetMetadata
+            # 網頁（Safari 會先跑 GetMetadata.js）、網址或含網址的文字都接受
+            NSExtensionActivationRule: >-
+              SUBQUERY (extensionItems, $extensionItem,
+                SUBQUERY ($extensionItem.attachments, $attachment,
+                  ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.url"
+                  || ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.plain-text"
+                  || ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "com.apple.property-list"
+                ).@count >= 1
+              ).@count >= 1
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(LK_BUNDLE_ID).share
+        APPLICATION_EXTENSION_API_ONLY: YES
+
+  LinkKeeperUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [LinkKeeperUITests]
+    dependencies:
+      - target: LinkKeeper
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(LK_BUNDLE_ID).uitests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  LinkKeeper:
+    build:
+      targets:
+        LinkKeeper: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets: [LinkKeeperUITests]
+      environmentVariables:
+        LK_UITEST_DEVICE_TOKEN: $(LK_UITEST_DEVICE_TOKEN)
+
