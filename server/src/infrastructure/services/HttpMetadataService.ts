@@ -143,6 +143,15 @@ export class HttpMetadataService implements MetadataService {
     }
   }
 
+  async storeImage(imageUrl: string, pageUrl: string): Promise<string> {
+    try {
+      return (await this.s3ImageService.uploadImageFromUrl(imageUrl, pageUrl)) || '';
+    } catch (error: any) {
+      logger.error(`Error uploading image to S3: ${error.message}`);
+      return '';
+    }
+  }
+
   private extractTitle($: cheerio.CheerioAPI): string {
     return (
       $('meta[property="og:title"]').attr('content') ||

@@ -1,5 +1,9 @@
 import { UrlAnalysisService, UrlAnalysisResult, UrlSource } from '../../domain/services/UrlAnalysisService';
 
+/* 完全相符或為子網域，避免 includes() 誤判（例如 mythreadsblog.com） */
+const matchesDomain = (hostname: string, domains: string[]): boolean =>
+  domains.some(domain => hostname === domain || hostname.endsWith(`.${domain}`));
+
 export class HttpUrlAnalysisService implements UrlAnalysisService {
   async analyzeUrl(url: string): Promise<UrlAnalysisResult> {
     try {
@@ -51,19 +55,19 @@ export class HttpUrlAnalysisService implements UrlAnalysisService {
   }
 
   private isFacebookUrl(hostname: string, pathname: string): boolean {
-    return hostname.includes('facebook.com') || hostname.includes('fb.com');
+    return matchesDomain(hostname, ['facebook.com', 'fb.com', 'fb.watch']);
   }
 
   private isInstagramUrl(hostname: string, pathname: string): boolean {
-    return hostname.includes('instagram.com');
+    return matchesDomain(hostname, ['instagram.com']);
   }
 
   private isThreadsUrl(hostname: string, pathname: string): boolean {
-    return hostname.includes('threads');
+    return matchesDomain(hostname, ['threads.net', 'threads.com']);
   }
 
   private isYouTubeUrl(hostname: string, pathname: string): boolean {
-    return hostname.includes('youtube.com') || hostname.includes('youtu.be');
+    return matchesDomain(hostname, ['youtube.com', 'youtu.be']);
   }
 
   private detectFacebookType(pathname: string): string {

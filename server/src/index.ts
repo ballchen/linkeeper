@@ -38,8 +38,8 @@ app.use(requestLogger);
 const container = DependencyContainer.getInstance();
 
 // Routes
-app.use('/api/urls', createUrlRoutes(container.urlController));
-app.use('/api/auth', createAuthRoutes(container.authController));
+app.use('/api/urls', createUrlRoutes(container.urlController, container.dualAuth));
+app.use('/api/auth', createAuthRoutes(container.authController, container.deviceController));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -55,6 +55,11 @@ app.get('/health', (req, res) => {
 mongoose.connect(MONGODB_URI)
   .then(() => {
     logger.info('Connected to MongoDB successfully');
+
+    // 上次 process 結束時尚未處理完的連結
+    container.enrichmentQueue.recoverPending().catch((error) => {
+      logger.error(`Failed to recover pending URLs: ${error}`);
+    });
     
     // Start Express server
     server = app.listen(PORT, () => {

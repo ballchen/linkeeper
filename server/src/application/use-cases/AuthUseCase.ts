@@ -20,6 +20,8 @@ export interface GoogleUserInfo {
 export class AuthUseCase {
   private oauthClient: OAuth2Client;
   private allowedEmails: string[];
+  /* web 與 iOS 的 Google OAuth client ID 不同，兩者簽發的 ID token 都要接受 */
+  private audiences: string[];
 
   constructor(private userRepository: UserRepository) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -30,6 +32,7 @@ export class AuthUseCase {
     }
 
     this.oauthClient = new OAuth2Client(clientId, clientSecret);
+    this.audiences = [clientId, process.env.GOOGLE_IOS_CLIENT_ID?.trim()].filter((id): id is string => !!id);
     
     // Load allowed emails from environment variable
     this.allowedEmails = process.env.ALLOWED_EMAILS?.split(',').map(email => email.trim().toLowerCase()).filter(Boolean) || [];
@@ -50,7 +53,7 @@ export class AuthUseCase {
       // Verify Google ID token
       const ticket = await this.oauthClient.verifyIdToken({
         idToken,
-        audience: process.env.GOOGLE_CLIENT_ID,
+        audience: this.audiences,
       });
 
       const payload = ticket.getPayload();

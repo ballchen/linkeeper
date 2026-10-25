@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
-import { Url, UrlMetadata } from '../../domain/entities/Url';
-import { UrlRepository, UrlQueryParams, PaginatedResult } from '../../domain/repositories/UrlRepository';
+import { Url, UrlMetadata, UrlStatus } from '../../domain/entities/Url';
+import { UrlRepository, UrlQueryParams, PaginatedResult, DuplicateUrlError, EnrichedMetadata } from '../../domain/repositories/UrlRepository';
 import { UrlSource } from '../../domain/services/UrlAnalysisService';
 
 interface UrlDocument extends Document {
@@ -10,8 +10,10 @@ interface UrlDocument extends Document {
   title?: string;
   description?: string;
   image?: string;
+  imageSourceUrl?: string;
   source?: UrlSource;
   tags?: string[];
+  status?: UrlStatus;
   createdAt: Date;
   deletedAt?: Date;
 }
@@ -23,12 +25,15 @@ const UrlSchema: Schema = new Schema({
   title: { type: String },
   description: { type: String },
   image: { type: String },
+  imageSourceUrl: { type: String },
   source: {
     type: String,
     enum: ['facebook', 'instagram', 'threads', 'youtube'],
     required: false
   },
   tags: [{ type: String }],
+  // 舊資料沒有此欄位，mapToEntity 視為 ready
+  status: { type: String, enum: ['pending', 'ready', 'failed'], default: 'ready', index: true },
   createdAt: { type: Date, default: Date.now },
   deletedAt: { type: Date, default: null }
 });
@@ -53,13 +58,45 @@ export class MongoUrlRepository implements UrlRepository {
       title: url.metadata.title,
       description: url.metadata.description,
       image: url.metadata.image,
+      imageSourceUrl: url.metadata.imageSourceUrl,
       source: url.metadata.source,
       tags: url.metadata.tags || [],
+      status: url.status,
       createdAt: url.createdAt
     });
 
-    const savedDoc = await urlDoc.save();
-    return this.mapToEntity(savedDoc);
+    try {
+      const savedDoc = await urlDoc.save();
+      return this.mapToEntity(savedDoc);
+    } catch (error) {
+      // 併發的重複請求（例如分享時重送）撞到唯一索引
+      if ((error as { code?: number }).code === 11000) {
+        throw new DuplicateUrlError(url.url);
+      }
+      throw error;
+    }
+  }
+
+  async updateEnrichment(id: string, metadata: EnrichedMetadata, status: UrlStatus): Promise<void> {
+    // 只更新 metadata 欄位，避免覆蓋處理期間使用者修改的 tags
+    await UrlModel.updateOne(
+      { _id: id },
+      { $set: { ...metadata, status } }
+    );
+  }
+
+  async updateTags(id: string, tags: string[]): Promise<Url | null> {
+    const updatedDoc = await UrlModel.findOneAndUpdate(
+      { _id: id, deletedAt: null },
+      { $set: { tags } },
+      { new: true }
+    );
+    return updatedDoc ? this.mapToEntity(updatedDoc) : null;
+  }
+
+  async findByStatus(status: UrlStatus): Promise<Url[]> {
+    const urlDocs = await UrlModel.find({ status, deletedAt: null }).sort({ createdAt: 1 });
+    return urlDocs.map(doc => this.mapToEntity(doc));
   }
 
   async findByUrl(url: string, ownerEmail: string): Promise<Url | null> {
@@ -111,8 +148,10 @@ export class MongoUrlRepository implements UrlRepository {
       ];
     }
 
-    // Source filter (for future)
-    if (source) {
+    // 'other' 表示沒有辨識出來源的一般網站
+    if (source === 'other') {
+      query.source = null;
+    } else if (source) {
       query.source = source;
     }
 
@@ -156,6 +195,8 @@ export class MongoUrlRepository implements UrlRepository {
   }
 
   async findById(id: string): Promise<Url | null> {
+    // 格式不正確的 id 會讓 mongoose 丟 CastError（變成 500），直接視為找不到
+    if (!mongoose.isValidObjectId(id)) return null;
     const urlDoc = await UrlModel.findOne({ _id: id, deletedAt: null });
     return urlDoc ? this.mapToEntity(urlDoc) : null;
   }
@@ -179,7 +220,8 @@ export class MongoUrlRepository implements UrlRepository {
         description: url.metadata.description,
         image: url.metadata.image,
         source: url.metadata.source,
-        tags: url.metadata.tags || []
+        tags: url.metadata.tags || [],
+        status: url.status
       },
       { new: true }
     );
@@ -196,6 +238,7 @@ export class MongoUrlRepository implements UrlRepository {
       title: doc.title,
       description: doc.description,
       image: doc.image,
+      imageSourceUrl: doc.imageSourceUrl,
       source: doc.source,
       tags: doc.tags || []
     };
@@ -205,7 +248,8 @@ export class MongoUrlRepository implements UrlRepository {
       doc.url,
       metadata,
       doc.createdAt,
-      doc.ownerEmail ?? null
+      doc.ownerEmail ?? null,
+      doc.status ?? 'ready'
     );
   }
 } 

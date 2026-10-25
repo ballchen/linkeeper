@@ -11,6 +11,8 @@ export interface UrlData {
   image?: string;
   source?: 'facebook' | 'instagram' | 'threads' | 'youtube';
   tags?: string[];
+  /* pending：server 背景抓取標題與預覽中 */
+  status?: 'pending' | 'ready' | 'failed';
   createdAt: string;
 }
 

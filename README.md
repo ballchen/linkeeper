@@ -130,9 +130,56 @@ Content-Type: application/json
 }
 ```
 
+### Add URL from shared text (iOS share sheet)
+```http
+POST /api/urls
+Authorization: Bearer lkd_...
+Content-Type: application/json
+
+{
+  "text": "看看這個 https://www.instagram.com/reel/abc/?igsh=xyz",
+  "metadata": {
+    "title": "og:title read on the device",
+    "description": "og:description",
+    "image": "https://cdn.example.com/og-image.jpg"
+  }
+}
+```
+
+`metadata` is optional and treated as a hint: invalid fields are ignored rather than failing the request. Device-provided values take priority over server scraping (useful for sites that block server-side crawlers, e.g. Instagram/Facebook); when both title and image are provided the server skips scraping and only uploads the image to S3.
+
+New URLs are saved immediately with `"status": "pending"` and return `201`; title, description and preview image are fetched in the background and the status becomes `ready`. Tracking parameters (`utm_*`, `igsh`, `fbclid`, YouTube `si`, ...) are stripped so the same link isn't saved twice (`200` with `"isNew": false`).
+
+### Update Tags
+```http
+PATCH /api/urls/:id
+Content-Type: application/json
+
+{ "tags": ["read-later"] }
+```
+
+### Re-fetch Metadata
+```http
+POST /api/urls/:id/refresh
+```
+
+Puts the URL back to `pending` and queues it for metadata fetching again (`202`). Used by the iOS app's "重新抓取" button.
+
+### Device Tokens (iOS app / Share Extension)
+Long-lived, revocable tokens for clients that can't refresh a 7-day JWT on their own. Managing them requires a JWT.
+
+```http
+POST   /api/auth/devices        { "name": "iPhone" }   → { "token": "lkd_...", "device": {...} } (token shown once)
+GET    /api/auth/devices
+DELETE /api/auth/devices/:id
+```
+
+Use the token as `Authorization: Bearer lkd_...` on `/api/urls`.
+
 ### Get All URLs
 ```http
 GET /api/urls
+GET /api/urls?limit=30&cursor=...&search=...&source=youtube   # paginated; source=other means no detected platform
 ```
 
 Returns URLs with source detection and tags:
@@ -148,6 +195,10 @@ Returns URLs with source detection and tags:
   "createdAt": "2023-12-07T10:30:00.000Z"
 }
 ```
+
+## 📲 iOS App
+
+The `ios/` folder contains the SwiftUI app and Share Extension. See [ios/README.md](ios/README.md) for setup.
 
 ## 📁 Project Structure (Clean Architecture)
 
@@ -179,6 +230,14 @@ Returns URLs with source detection and tags:
 ```
 
 ## 🧪 Testing
+
+### Unit Tests
+```bash
+cd server
+npm test           # run once
+npm run test:watch # watch mode
+npm run typecheck  # type-check src + tests
+```
 
 ### Test URL Analysis
 ```bash

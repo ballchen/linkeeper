@@ -191,7 +191,7 @@ const UrlCard = memo<UrlCardProps>(({
 
       <div className="url-content">
         <h3 className="url-title">
-          {urlData.title || '（沒有標題）'}
+          {urlData.title || (urlData.status === 'pending' ? '正在抓取標題⋯' : '（沒有標題）')}
         </h3>
 
         {urlData.description && (

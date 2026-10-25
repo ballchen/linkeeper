@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import axios from 'axios';
 import { createHash } from 'crypto';
@@ -70,9 +70,9 @@ export class AWSS3ImageService implements S3ImageService {
       const filename = `${hash}.${extension}`;
       const s3Key = `${this.folderName}/${filename}`;
 
-      // Check if image already exists in S3
+      // Check if image already exists in S3（HeadObject 不會下載整個檔案）
       try {
-        await this.s3Client.send(new GetObjectCommand({
+        await this.s3Client.send(new HeadObjectCommand({
           Bucket: this.bucketName,
           Key: s3Key
         }));
@@ -81,7 +81,7 @@ export class AWSS3ImageService implements S3ImageService {
         return s3Key;
       } catch (error: any) {
         // If image doesn't exist (404), continue with upload
-        if (error.name !== 'NoSuchKey') {
+        if (error.name !== 'NotFound' && error.name !== 'NoSuchKey') {
           logger.error(`Error checking if image exists in S3: ${error.message}`);
         }
       }

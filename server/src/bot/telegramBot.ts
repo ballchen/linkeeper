@@ -2,6 +2,7 @@ import { Telegraf, Context } from 'telegraf';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import logger from '../utils/logger';
+import { extractUrlFromText } from '../utils/urlNormalize';
 
 dotenv.config();
 
@@ -12,9 +13,6 @@ const allowedUsers = process.env.TELEGRAM_ALLOWED_USERS;
 
 // Create bot instance（token 缺失時延後到 startBot() 才報錯）
 const bot = new Telegraf(botToken || '');
-
-// URL validation regex
-const urlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
 
 // Parse allowed users list
 const allowedUsersList = (allowedUsers || '').split(',').map(user => user.trim()).filter(user => user.length > 0);
@@ -86,17 +84,17 @@ bot.on('text', async (ctx) => {
   
   logger.debug(`Message received from ${username} (ID: ${userId}): ${text}`);
   
-  // Check if the message contains a URL
-  if (urlRegex.test(text)) {
+  // Extract the URL from the message（與 iOS 分享共用同一套抽取邏輯）
+  const url = extractUrlFromText(text);
+
+  if (url) {
     try {
-      // Extract the URL from the message
-      const url = text.match(urlRegex)?.[0] || '';
-      
+
       logger.info(`Processing URL from ${username}: ${url}`);
       
       // Send URL to API with authentication
       const apiUrl = process.env.API_URL || 'http://localhost:4000/api/urls';
-      await axios.post(apiUrl, 
+      const response = await axios.post(apiUrl, 
         { url }, 
         {
           headers: {
@@ -106,8 +104,13 @@ bot.on('text', async (ctx) => {
         }
       );
       
-      logger.info(`URL saved successfully: ${url}`);
-      ctx.reply(`✅ Link saved to LinkKeeper!\n\n🔗 ${url}\n\nYou can access all your saved links through the web interface.`);
+      if (response.data?.isNew === false) {
+        logger.info(`URL already saved: ${url}`);
+        ctx.reply(`👌 This link is already in LinkKeeper.\n\n🔗 ${response.data.url || url}`);
+      } else {
+        logger.info(`URL saved successfully: ${url}`);
+        ctx.reply(`✅ Link saved to LinkKeeper!\n\n🔗 ${response.data?.url || url}\n\nTitle and preview will appear in the web interface shortly.`);
+      }
     } catch (error) {
       logger.error(`Error saving URL from ${username}: ${error}`);
       
